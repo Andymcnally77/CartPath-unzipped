@@ -110,8 +110,8 @@ export async function fetchAISuggestions(prompt, existing) {
   const sys = `You are a grocery assistant for CartPath. Aisles: ${JSON.stringify(STORE_AISLES)}.
 Return ONLY raw JSON array of 6-10 items: { name, aisle (one of [${Object.keys(STORE_AISLES).join(",")}]), category, qty, emoji }
 Be specific. Exclude: ${existing.map(i=>i.name).join(",")||"none"}.`;
-  const r = await fetch("https://api.anthropic.com/v1/messages", {
-    method:"POST", headers:{"Content-Type":"application/json","x-api-key":import.meta.env.VITE_ANTHROPIC_API_KEY,"anthropic-version":"2023-06-01","anthropic-dangerous-allow-browser":"true"},
+  const r = await fetch("/api/claude", {
+    method:"POST", headers:{"Content-Type":"application/json"},
     body:JSON.stringify({ model:"claude-sonnet-4-20250514", max_tokens:1000,
       system:sys, messages:[{role:"user",content:prompt}] })
   });
@@ -122,8 +122,8 @@ Be specific. Exclude: ${existing.map(i=>i.name).join(",")||"none"}.`;
 export async function lookupBarcode(barcode) {
   const sys = `You are a grocery product database. Aisles: ${JSON.stringify(STORE_AISLES)}.
 Given a barcode return ONLY raw JSON: { name, brand, aisle (one of [${Object.keys(STORE_AISLES).join(",")}]), category, qty:"1", emoji, description }`;
-  const r = await fetch("https://api.anthropic.com/v1/messages", {
-    method:"POST", headers:{"Content-Type":"application/json","x-api-key":import.meta.env.VITE_ANTHROPIC_API_KEY,"anthropic-version":"2023-06-01","anthropic-dangerous-allow-browser":"true"},
+  const r = await fetch("/api/claude", {
+    method:"POST", headers:{"Content-Type":"application/json"},
     body:JSON.stringify({ model:"claude-sonnet-4-20250514", max_tokens:400,
       system:sys, messages:[{role:"user",content:`Barcode: ${barcode}`}] })
   });
