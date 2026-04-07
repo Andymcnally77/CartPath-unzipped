@@ -406,7 +406,7 @@ function NavigateScreen({ items, setItems, setScreen, setHistory, storeName }) {
   const toggle=(id)=>setItems(p=>{const u=p.map(i=>i.id===id?{...i,checked:!i.checked}:i);sSet(SK.current,u);return u;});
   const allDone=items.length>0&&items.every(i=>i.checked);
   useEffect(()=>{if(allDone&&items.length>0){setHistory(prev=>{const e={id:Date.now(),name:`Shop — ${new Date().toLocaleDateString()}`,date:new Date().toLocaleDateString(),items};const u=[e,...prev].slice(0,20);sSet(SK.history,u);return u;});}}, [allDone]);
-  const CELL=50,GAP=5;
+  const CELL=40,GAP=3;
   return (
     <div style={{flex:1,overflowY:"auto",display:"flex",flexDirection:"column"}}>
       <div style={{padding:"14px 20px 10px",background:S.surface,borderBottom:`1px solid ${S.border}`,flexShrink:0}}>
@@ -418,7 +418,7 @@ function NavigateScreen({ items, setItems, setScreen, setHistory, storeName }) {
       </div>
       <div style={{padding:"12px 20px",borderBottom:`1px solid ${S.border}`}}>
         <div style={{fontSize:8,letterSpacing:3,color:S.muted,marginBottom:8}}>STORE MAP</div>
-        <div style={{position:"relative",width:(CELL*4)+(GAP*3),height:(CELL*11)+(GAP*10),margin:"0 auto"}}>
+        <div style={{position:"relative",width:(CELL*8)+(GAP*7),height:(CELL*6)+(GAP*5),margin:"0 auto"}}>
           {STORE_LAYOUT.map(sec=>{
             const isActive=sec.id===currentAisle,inRoute=animRoute.includes(sec.id);
             const done=sec.type!=="special"&&items.filter(i=>i.aisle===sec.id).length>0&&items.filter(i=>i.aisle===sec.id).every(i=>i.checked);

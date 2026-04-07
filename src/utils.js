@@ -32,32 +32,31 @@ export const AISLE_COLORS = {
 };
 
 export const STORE_LAYOUT = [
-  // Row 1: Aisles 1–4
-  {id:"1", label:"1\nWine/Beer",  x:0,y:0,w:1,h:2},
-  {id:"2", label:"2\nHome",       x:1,y:0,w:1,h:2},
-  {id:"3", label:"3\nCleaning",   x:2,y:0,w:1,h:2},
-  {id:"4", label:"4\nBaby/Vit",   x:3,y:0,w:1,h:2},
-  // Row 2: Aisles 5–8
-  {id:"5", label:"5\nBaby/Toy",   x:0,y:2,w:1,h:2},
-  {id:"6", label:"6\nSeasonal",   x:1,y:2,w:1,h:2},
-  {id:"7", label:"7\nParty",      x:2,y:2,w:1,h:2},
-  {id:"8", label:"8\nFrozen",     x:3,y:2,w:1,h:2},
-  // Row 3: Aisles 9–12
-  {id:"9", label:"9\nOrganic",    x:0,y:4,w:1,h:2},
-  {id:"10",label:"10\nPet/Paper", x:1,y:4,w:1,h:2},
-  {id:"11",label:"11\nDrinks",    x:2,y:4,w:1,h:2},
-  {id:"12",label:"12\nSoup",      x:3,y:4,w:1,h:2},
-  // Row 4: Aisles 13–16
-  {id:"13",label:"13\nIntl",      x:0,y:6,w:1,h:2},
-  {id:"14",label:"14\nCanned",    x:1,y:6,w:1,h:2},
-  {id:"15",label:"15\nCereal",    x:2,y:6,w:1,h:2},
-  {id:"16",label:"16\nBread",     x:3,y:6,w:1,h:2},
-  // Perimeter
-  {id:"DAIRY",label:"DAIRY · EGGS · JUICE",x:0,y:8,w:4,h:1,type:"special"},
-  {id:"DELI", label:"DELI & HOT FOODS",    x:0,y:9,w:2,h:1,type:"special"},
-  {id:"PROD", label:"PRODUCE",             x:2,y:9,w:2,h:1,type:"special"},
-  {id:"entrance",label:"ENTRANCE",         x:2,y:10,w:2,h:1,type:"special"},
-  {id:"checkout",label:"CHECKOUT",         x:0,y:10,w:2,h:1,type:"special"},
+  // Back wall — Dairy/Refrigerated
+  {id:"DAIRY",label:"🥛 DAIRY · EGGS · BUTTER · JUICE · YOGURT · MILK",x:0,y:0,w:8,h:1,type:"special"},
+  // Aisles 1–8 (top row)
+  {id:"1", label:"1\nWine/Beer",  x:0,y:1,w:1,h:2},
+  {id:"2", label:"2\nHardware",   x:1,y:1,w:1,h:2},
+  {id:"3", label:"3\nCleaning",   x:2,y:1,w:1,h:2},
+  {id:"4", label:"4\nHealth",     x:3,y:1,w:1,h:2},
+  {id:"5", label:"5\nBaby",       x:4,y:1,w:1,h:2},
+  {id:"6", label:"6\nSeasonal",   x:5,y:1,w:1,h:2},
+  {id:"7", label:"7\nBakery",     x:6,y:1,w:1,h:2},
+  {id:"8", label:"8\nDesserts",   x:7,y:1,w:1,h:2},
+  // Aisles 9–16 (bottom row)
+  {id:"9", label:"9\nOrganic",    x:0,y:3,w:1,h:2},
+  {id:"10",label:"10\nPet",       x:1,y:3,w:1,h:2},
+  {id:"11",label:"11\nDrinks",    x:2,y:3,w:1,h:2},
+  {id:"12",label:"12\nSoup",      x:3,y:3,w:1,h:2},
+  {id:"13",label:"13\nRice/Past", x:4,y:3,w:1,h:2},
+  {id:"14",label:"14\nCanned",    x:5,y:3,w:1,h:2},
+  {id:"15",label:"15\nCereal",    x:6,y:3,w:1,h:2},
+  {id:"16",label:"16\nBread",     x:7,y:3,w:1,h:2},
+  // Front of store
+  {id:"PROD",    label:"🥦 PRODUCE",  x:0,y:5,w:2,h:1,type:"special"},
+  {id:"DELI",    label:"🥩 DELI",     x:2,y:5,w:2,h:1,type:"special"},
+  {id:"checkout",label:"CHECKOUT",    x:4,y:5,w:2,h:1,type:"special"},
+  {id:"entrance",label:"ENTRANCE",    x:6,y:5,w:2,h:1,type:"special"},
 ];
 
 export const QUICK_PROMPTS = [
