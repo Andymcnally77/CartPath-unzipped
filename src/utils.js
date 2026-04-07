@@ -21,7 +21,7 @@ export const STORE_AISLES = {
   "PROD": "Produce",
 };
 
-export const ROUTE_ORDER = ["PROD","1","2","3","4","5","6","7","8","9","10","11","12","13","14","15","16","DAIRY","DELI"];
+export const ROUTE_ORDER = ["16","15","14","13","12","11","10","9","8","7","6","5","4","3","2","1","DAIRY","PROD","DELI"];
 
 export const AISLE_COLORS = {
   "1":"#c084fc",  "2":"#60a5fa",  "3":"#34d399",  "4":"#f9a8d4",
