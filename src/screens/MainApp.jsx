@@ -440,6 +440,10 @@ function NavigateScreen({ items, setItems, setScreen, setHistory, storeName }) {
         <rect x={DELI_X} y={DAIRY_Y-8} width={20} height={BOTTOM-DAIRY_Y+44} fill="#1f0d0d" stroke="#5f1e1e" rx={3}/>
         <text x={DELI_X+10} y={DAIRY_Y+8}  fill="#fca5a5" fontSize={5.5} textAnchor="middle" fontWeight="700">DELI</text>
         {["Fried","Chkn","Sand","Sushi","Cakes","Donuts"].map((t,i)=><text key={t} x={DELI_X+10} y={DAIRY_Y+20+i*13} fill="#fca5a5" fontSize={5} textAnchor="middle">{t}</text>)}
+        {/* Back corridor (top) */}
+        <line x1={LEFT} y1={TOP} x2={RIGHT} y2={TOP} stroke="#1e2a3a" strokeWidth={6} strokeLinecap="round"/>
+        {/* Front corridor (bottom) */}
+        <line x1={LEFT} y1={BOTTOM} x2={RIGHT} y2={BOTTOM} stroke="#1e2a3a" strokeWidth={6} strokeLinecap="round"/>
         {/* Route */}
         {numRoute.length>0&&<path d={pd} stroke="#4ade80" strokeWidth={1.5} strokeDasharray="4,2" fill="none" strokeLinecap="round" strokeLinejoin="round" opacity={0.75}/>}
         {/* Aisle lines */}
