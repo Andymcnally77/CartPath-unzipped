@@ -500,7 +500,7 @@ function NavigateScreen({ items, setItems, setScreen, setHistory, storeName }) {
         <div style={{height:3,background:"#1a2030",borderRadius:3,overflow:"hidden",marginTop:8}}><div style={{height:"100%",width:`${(items.filter(i=>i.checked).length/Math.max(items.length,1))*100}%`,background:`linear-gradient(90deg,${S.blue},${S.green})`,borderRadius:3,transition:"width 0.5s"}}/></div>
       </div>
       <div style={{padding:"12px 16px",borderBottom:`1px solid ${S.border}`}}>
-        <div style={{fontSize:8,letterSpacing:3,color:S.muted,marginBottom:6}}>STORE MAP</div>
+        <div style={{fontSize:8,letterSpacing:3,color:S.muted,marginBottom:6}}>STORE MAP · <span style={{color:"#facc15"}}>step {step+1}/{allStops.length} idx={stepIdx} aisle={currentAisle}</span></div>
         <MapSVG/>
       </div>
       {allDone?(
