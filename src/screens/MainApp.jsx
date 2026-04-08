@@ -406,7 +406,9 @@ function StoreMap({ currentAisle, remaining, items }) {
   const doneSet=new Set(items.filter(i=>i.checked).map(i=>i.aisle));
   const numRoute=remaining.filter(a=>!isNaN(Number(a))).map(Number);
   const LABELS={1:"Wine/Beer",2:"Hardware",3:"Cleaning",4:"Health",5:"Baby",6:"Seasonal",7:"Picnic",8:"Desserts",9:"Organic",10:"Pet",11:"Drinks",12:"Soup",13:"Rice",14:"Canned",15:"Cereal",16:"Bread"};
-  // Route path — snakes up/down aisles using back, mid, and front corridors
+  const PROD_CX=RIGHT-66, PROD_CY=BOTTOM+20;
+  const DELI_CX=DELI_X+10, DELI_CY=MID;
+  // Route path — snakes through aisles then extends to PROD/DELI if remaining
   const pts=[[ax(16)+4, BOTTOM+20]];
   let up=true;
   numRoute.forEach(n=>{
@@ -415,11 +417,26 @@ function StoreMap({ currentAisle, remaining, items }) {
     else{pts.push([x,TOP]);pts.push([x,MID-GAP]);pts.push([x,MID+GAP]);pts.push([x,BOTTOM]);}
     up=!up;
   });
+  if(remaining.includes("PROD")){
+    const p=pts[pts.length-1];
+    if(p[1]!==BOTTOM) pts.push([p[0],BOTTOM]);
+    pts.push([PROD_CX,BOTTOM]);
+    pts.push([PROD_CX,PROD_CY]);
+    pts.push([PROD_CX,BOTTOM]);
+  }
+  if(remaining.includes("DELI")){
+    const p=pts[pts.length-1];
+    if(p[1]!==BOTTOM) pts.push([p[0],BOTTOM]);
+    pts.push([RIGHT,BOTTOM]);
+    pts.push([DELI_CX,DELI_CY]);
+    pts.push([RIGHT,DELI_CY]);
+  }
   const last=pts[pts.length-1];
   if(last[1]!==TOP) pts.push([last[0],TOP]);
   pts.push([LEFT,TOP]);
   pts.push([LEFT-4,BOTTOM+20]);
   const pd=pts.map((p,i)=>`${i===0?"M":"L"}${p[0].toFixed(1)},${p[1].toFixed(1)}`).join(" ");
+  const hasRoute=remaining.length>0;
   return (
     <svg viewBox="0 0 316 210" width="100%" style={{display:"block"}}>
       <rect x={0} y={0} width={316} height={210} fill="#0d1117"/>
@@ -436,7 +453,7 @@ function StoreMap({ currentAisle, remaining, items }) {
       <text x={LEFT-2} y={MID+10} fill="#2d3748" fontSize={5} textAnchor="middle" transform={`rotate(-90,${LEFT-2},${MID+10})`}>MID</text>
       <line x1={LEFT} y1={BOTTOM} x2={RIGHT} y2={BOTTOM} stroke="#1e2a3a" strokeWidth={6} strokeLinecap="round"/>
       {/* Route line */}
-      {numRoute.length>0&&<path d={pd} stroke="#4ade80" strokeWidth={1.5} strokeDasharray="4,2" fill="none" strokeLinecap="round" strokeLinejoin="round" opacity={0.75}/>}
+      {hasRoute&&<path d={pd} stroke="#4ade80" strokeWidth={1.5} strokeDasharray="4,2" fill="none" strokeLinecap="round" strokeLinejoin="round" opacity={0.75}/>}
       {/* Aisle lines — split at mid corridor */}
       {[...Array(16)].map((_,i)=>{
         const n=i+1,x=ax(n);
@@ -467,6 +484,16 @@ function StoreMap({ currentAisle, remaining, items }) {
         </g>);
       })}
       {currentAisle&&!isNaN(Number(currentAisle))&&<text x={ax(Number(currentAisle))} y={badgeY-10} fill="#4ade80" fontSize={5} fontWeight="700" textAnchor="middle">▼ HERE</text>}
+      {/* PROD stop badge */}
+      {remaining.includes("PROD")&&<g>
+        <circle cx={PROD_CX} cy={PROD_CY-14} r={currentAisle==="PROD"?7:5} fill={currentAisle==="PROD"?"#4ade80":"#0a1f12"} stroke="#4ade80" strokeWidth={1}/>
+        <text x={PROD_CX} y={PROD_CY-12} fill={currentAisle==="PROD"?"#000":"#4ade80"} fontSize={5} textAnchor="middle" fontWeight="900">🥦</text>
+      </g>}
+      {/* DELI stop badge */}
+      {remaining.includes("DELI")&&<g>
+        <circle cx={DELI_CX+12} cy={DELI_CY} r={currentAisle==="DELI"?7:5} fill={currentAisle==="DELI"?"#4ade80":"#0a1f12"} stroke="#4ade80" strokeWidth={1}/>
+        <text x={DELI_CX+12} y={DELI_CY+2} fill={currentAisle==="DELI"?"#000":"#4ade80"} fontSize={5} textAnchor="middle" fontWeight="900">🥩</text>
+      </g>}
       {/* Floor sections */}
       <rect x={LEFT-4} y={BOTTOM+8} width={68} height={24} fill="#1a1207" stroke="#5f3a0d" rx={3}/>
       <text x={LEFT+30} y={BOTTOM+17} fill="#fcd34d" fontSize={6} textAnchor="middle" fontWeight="700">🛒 CHECKOUT</text>
