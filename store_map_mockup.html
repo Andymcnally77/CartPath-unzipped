@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>CartPath – Store Map v4</title>
+<style>
+  body { background:#080a0d; display:flex; flex-direction:column; align-items:center; padding:24px; gap:12px; font-family:monospace; }
+  h2 { color:#4ade80; font-size:12px; letter-spacing:3px; margin:0; }
+  p  { color:#4a5568; font-size:10px; margin:0; text-align:center; }
+  svg text { font-family: monospace; }
+</style>
+</head>
+<body>
+
+<h2>CARTPATH — STORE MAP</h2>
+<p>Route snakes up &amp; down aisles · no diagonals · sample trip</p>
+
+<svg id="map" width="520" height="420" style="border-radius:12px;"></svg>
+
+<p style="color:#e2e8f0;max-width:420px;line-height:1.8;">
+  Green line = your route through the store.<br>
+  Numbered stops = aisles with items on your list.<br>
+  <strong>What needs to change?</strong>
+</p>
+
+<script>
+const svg = document.getElementById("map");
+
+// ── dimensions ──────────────────────────────────────────────────
+const W = 520, H = 420;
+const LEFT = 36, RIGHT = 458;   // store left/right walls
+const TOP  = 68, BOTTOM = 318;  // aisle top (dairy side) / bottom (entrance side)
+const DAIRY_Y = 42;             // dairy label band y
+const FLOOR_Y = 360;            // entrance/checkout label row y
+const DELI_X  = 468;            // deli right wall
+
+// ── helpers ─────────────────────────────────────────────────────
+function el(tag, attrs, children) {
+  const e = document.createElementNS("http://www.w3.org/2000/svg", tag);
+  Object.entries(attrs).forEach(([k,v]) => e.setAttribute(k,v));
+  if (children) e.innerHTML = children;
+  svg.appendChild(e);
+  return e;
+}
+function line(x1,y1,x2,y2,stroke,sw,dash) {
+  el("line",{x1,y1,x2,y2,stroke,"stroke-width":sw||1,"stroke-dasharray":dash||"none"});
+}
+function rect(x,y,w,h,fill,stroke,r) {
+  el("rect",{x,y,width:w,height:h,fill,stroke:"stroke"===stroke?fill:stroke,rx:r||4});
+}
+function text(x,y,str,fill,fs,anchor,weight) {
+  el("text",{x,y,fill:fill||"#4a5568","font-size":fs||8,"text-anchor":anchor||"middle","font-weight":weight||"normal"},str);
+}
+function path(d,stroke,sw,dash,fill) {
+  el("path",{d,stroke:stroke||"#4ade80","stroke-width":sw||2,"stroke-dasharray":dash||"none",fill:fill||"none","stroke-linecap":"round","stroke-linejoin":"round"});
+}
+function circle(cx,cy,r,fill,stroke) {
+  el("circle",{cx,cy,r,fill:fill||"#4ade80",stroke:stroke||"none","stroke-width":2});
+}
+
+// ── aisle positions ──────────────────────────────────────────────
+const N = 16;
+const aisleSpacing = (RIGHT - LEFT) / (N - 1);
+const aisleX = n => LEFT + (n - 1) * aisleSpacing; // aisle 1 = LEFT, 16 = RIGHT
+
+const AISLE_LABELS = {
+  1:"Wine/Beer", 2:"Hardware", 3:"Cleaning", 4:"Health",
+  5:"Baby/Diapers", 6:"Seasonal", 7:"Picnic", 8:"Desserts/Ice Crm",
+  9:"Organic", 10:"Pet/Litter", 11:"Soft Drinks/Chips", 12:"Soup/Wraps",
+  13:"Rice/Ethnic", 14:"Canned Foods", 15:"Cereal/Brkfast", 16:"Bread/Coffee"
+};
+
+// ── aisles with items (demo) ─────────────────────────────────────
+const itemAisles = new Set([1, 5, 11, 15, 16]);
+const currentStop = 11; // currently shopping here
+
+// ── BACKGROUND ──────────────────────────────────────────────────
+rect(0,0,W,H,"#0d1117","none",0);
+
+// ── DAIRY BACK WALL ─────────────────────────────────────────────
+rect(LEFT-4, DAIRY_Y-10, (RIGHT-LEFT)+8+16, 24, "#0d1f35","#1e3a5f",4);
+text((LEFT+DELI_X)/2, DAIRY_Y+5, "🥛  DAIRY · EGGS · CINN. ROLLS · BUTTER · OJ · YOGURT · MILK · CREAMER", "#bfdbfe", 7.5, "middle", "700");
+
+// ── DELI RIGHT WALL ─────────────────────────────────────────────
+rect(DELI_X, DAIRY_Y-10, 46, (BOTTOM-DAIRY_Y)+10+46, "#1f0d0d","#5f1e1e",4);
+text(DELI_X+23, DAIRY_Y+14,  "🥩",      "#fca5a5", 11, "middle");
+text(DELI_X+23, DAIRY_Y+28,  "DELI",    "#fca5a5", 7,  "middle","700");
+text(DELI_X+23, DAIRY_Y+46,  "Fried",   "#fca5a5", 6.5,"middle");
+text(DELI_X+23, DAIRY_Y+57,  "Chicken", "#fca5a5", 6.5,"middle");
+text(DELI_X+23, DAIRY_Y+74,  "Sand-",   "#fca5a5", 6.5,"middle");
+text(DELI_X+23, DAIRY_Y+84,  "wich",    "#fca5a5", 6.5,"middle");
+text(DELI_X+23, DAIRY_Y+99,  "Sushi",   "#fca5a5", 6.5,"middle");
+text(DELI_X+23, DAIRY_Y+114, "Cakes",   "#fca5a5", 6.5,"middle");
+text(DELI_X+23, DAIRY_Y+129, "Donuts",  "#fca5a5", 6.5,"middle");
+
+// ── AISLE LINES ─────────────────────────────────────────────────
+for (let n = 1; n <= 16; n++) {
+  const ax = aisleX(n);
+  const hasItems = itemAisles.has(n);
+  const isCurrent = n === currentStop;
+  const lineColor = isCurrent ? "#4ade80" : hasItems ? "#2d5a3d" : "#1a1f2e";
+  const lw = isCurrent ? 5 : hasItems ? 4 : 3;
+
+  // aisle line
+  line(ax, TOP, ax, BOTTOM, lineColor, lw);
+
+  // aisle number at top
+  text(ax, TOP-6, String(n), isCurrent?"#4ade80":hasItems?"#2d6a3d":"#2d3748", 7.5, "middle","700");
+
+  // aisle label — rotated, split into 2 lines manually by placing two texts
+  const label = AISLE_LABELS[n] || "";
+  const words = label.split("/");
+  const midY = (TOP + BOTTOM) / 2;
+  el("text",{x:ax+3,y:midY-4,fill:isCurrent?"#4ade8088":hasItems?"#1a3a2a":"#1a1f2e","font-size":6.5,"text-anchor":"middle",transform:`rotate(-90,${ax+3},${midY})`, "font-weight": hasItems?"700":"normal"},words[0]||"");
+  if(words[1]) el("text",{x:ax+3,y:midY+6,fill:isCurrent?"#4ade8088":hasItems?"#1a3a2a":"#1a1f2e","font-size":6,"text-anchor":"middle",transform:`rotate(-90,${ax+3},${midY+10})`, "font-weight": hasItems?"700":"normal"},words[1]||"");
+}
+
+// ── FLOOR SECTIONS ──────────────────────────────────────────────
+// Entrance (bottom right — slim)
+rect(RIGHT+2, BOTTOM+10, DELI_X-RIGHT+10, 38, "#0d0d1f","#1e1e5f",4);
+text(RIGHT+2+(DELI_X-RIGHT+10)/2, BOTTOM+24, "🚪 ENTER", "#a5b4fc",7.5,"middle","700");
+text(RIGHT+2+(DELI_X-RIGHT+10)/2, BOTTOM+36, "start →", "#4a5568",6.5,"middle");
+
+// Produce (bottom right, large box)
+rect(RIGHT-130, BOTTOM+10, 132, 38, "#0d1f12","#1e5f2a",4);
+text(RIGHT-64, BOTTOM+24, "🥦 PRODUCE", "#86efac",8,"middle","700");
+text(RIGHT-64, BOTTOM+36, "Fresh Fruit & Veg", "#2d6a3d",6.5,"middle");
+
+// Checkout (bottom left)
+rect(LEFT-4, BOTTOM+10, (RIGHT-LEFT)*0.35, 38, "#1a1207","#5f3a0d",4);
+text(LEFT + (RIGHT-LEFT)*0.175, BOTTOM+24, "🛒 CHECKOUT", "#fcd34d",8,"middle","700");
+text(LEFT + (RIGHT-LEFT)*0.175, BOTTOM+36, "← finish here", "#4a5568",6.5,"middle");
+
+// ── ROUTE PATH ──────────────────────────────────────────────────
+// Active aisles in order from entrance (right) to checkout (left)
+const routeAisles = [16, 15, 11, 5, 1]; // right to left, ordered by distance from entrance
+const pts = [];
+
+// Start at entrance bottom right
+pts.push([aisleX(16)+2, BOTTOM+30]);
+
+// Snake through aisles
+let goingUp = true;
+routeAisles.forEach((n, i) => {
+  const ax = aisleX(n);
+  if (goingUp) {
+    pts.push([ax, BOTTOM]);  // walk to bottom of this aisle
+    pts.push([ax, TOP]);     // go UP
+  } else {
+    pts.push([ax, TOP]);     // walk to top
+    pts.push([ax, BOTTOM]);  // go DOWN
+  }
+  goingUp = !goingUp;
+});
+
+// After last aisle (aisle 1, going up → we're at TOP)
+// Walk along dairy to checkout
+pts.push([LEFT, TOP]);
+pts.push([LEFT-4, BOTTOM+30]); // checkout bottom left
+
+const d = pts.map((p,i) => `${i===0?"M":"L"} ${p[0]} ${p[1]}`).join(" ");
+path(d, "#4ade80", 2, "6,3");
+
+// ── STOP NUMBERS ────────────────────────────────────────────────
+const stops = [
+  {n:1, x:aisleX(16)+2, y:BOTTOM+30, label:"START"},
+  {n:2, x:aisleX(16),   y:(TOP+BOTTOM)/2},
+  {n:3, x:aisleX(15),   y:(TOP+BOTTOM)/2},
+  {n:4, x:aisleX(11),   y:(TOP+BOTTOM)/2},
+  {n:5, x:aisleX(5),    y:(TOP+BOTTOM)/2},
+  {n:6, x:aisleX(1),    y:(TOP+BOTTOM)/2},
+  {n:7, x:LEFT,         y:TOP-2, label:"DAIRY"},
+  {n:8, x:LEFT-4,       y:BOTTOM+30, label:"END"},
+];
+
+stops.forEach(s => {
+  if(s.label==="START"||s.label==="END") return; // already labeled
+  circle(s.x, s.y, 7, "#4ade80", "#080a0d");
+  text(s.x, s.y+3, String(s.n), "#080a0d", 7, "middle","900");
+});
+
+// Pulsing current stop marker
+circle(aisleX(currentStop), (TOP+BOTTOM)/2, 9, "none","#4ade80");
+circle(aisleX(currentStop), (TOP+BOTTOM)/2, 5, "#4ade80");
+text(aisleX(currentStop)+14, (TOP+BOTTOM)/2-8, "← YOU", "#4ade80", 7, "start","700");
+text(aisleX(currentStop)+14, (TOP+BOTTOM)/2+3, "ARE", "#4ade80", 7, "start","700");
+text(aisleX(currentStop)+14, (TOP+BOTTOM)/2+14, "HERE", "#4ade80", 7, "start","700");
+
+// Direction arrows along route (small triangles)
+// Draw small arrowheads at mid-points of each vertical segment
+routeAisles.forEach((n, i) => {
+  const ax = aisleX(n);
+  const midY = (TOP + BOTTOM) / 2;
+  const goUp = i % 2 === 0;
+  const ay = goUp ? midY : midY;
+  // Arrow triangle
+  const size = 4;
+  const pts2 = goUp
+    ? `${ax},${midY-size} ${ax-size},${midY+size} ${ax+size},${midY+size}`
+    : `${ax},${midY+size} ${ax-size},${midY-size} ${ax+size},${midY-size}`;
+  el("polygon",{points:pts2,fill:"#4ade80",opacity:"0.7"});
+});
+</script>
+
+</body>
+</html>
