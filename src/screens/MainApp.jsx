@@ -441,12 +441,12 @@ function NavigateScreen({ items, setItems, setScreen, setHistory, storeName }) {
       <svg viewBox="0 0 316 210" width="100%" style={{display:"block"}}>
         <rect x={0} y={0} width={316} height={210} fill="#0d1117"/>
         {/* Dairy */}
-        <rect x={LEFT-4} y={DAIRY_Y-8} width={DELI_X-LEFT+8} height={20} fill="#0d1f35" stroke="#1e3a5f" rx={3}/>
-        <text x={(LEFT+DELI_X)/2} y={DAIRY_Y+5} fill="#bfdbfe" fontSize={6} textAnchor="middle" fontWeight="700">🥛 DAIRY · EGGS · BUTTER · OJ · YOGURT · MILK · CREAMER</text>
+        <rect x={LEFT-4} y={DAIRY_Y-8} width={DELI_X-LEFT+8} height={20} fill={currentAisle==="DAIRY"?"#0d2f50":"#0d1f35"} stroke={currentAisle==="DAIRY"?"#4ade80":"#1e3a5f"} strokeWidth={currentAisle==="DAIRY"?2:1} rx={3}/>
+        <text x={(LEFT+DELI_X)/2} y={DAIRY_Y+5} fill={currentAisle==="DAIRY"?"#4ade80":"#bfdbfe"} fontSize={6} textAnchor="middle" fontWeight="700">🥛 DAIRY · EGGS · BUTTER · OJ · YOGURT · MILK · CREAMER{currentAisle==="DAIRY"?" ← HERE":""}</text>
         {/* Deli */}
-        <rect x={DELI_X} y={DAIRY_Y-8} width={20} height={BOTTOM-DAIRY_Y+44} fill="#1f0d0d" stroke="#5f1e1e" rx={3}/>
-        <text x={DELI_X+10} y={DAIRY_Y+8}  fill="#fca5a5" fontSize={5.5} textAnchor="middle" fontWeight="700">DELI</text>
-        {["Fried","Chkn","Sand","Sushi","Cakes","Donuts"].map((t,i)=><text key={t} x={DELI_X+10} y={DAIRY_Y+20+i*13} fill="#fca5a5" fontSize={5} textAnchor="middle">{t}</text>)}
+        <rect x={DELI_X} y={DAIRY_Y-8} width={20} height={BOTTOM-DAIRY_Y+44} fill={currentAisle==="DELI"?"#2a0d0d":"#1f0d0d"} stroke={currentAisle==="DELI"?"#4ade80":"#5f1e1e"} strokeWidth={currentAisle==="DELI"?2:1} rx={3}/>
+        <text x={DELI_X+10} y={DAIRY_Y+8} fill={currentAisle==="DELI"?"#4ade80":"#fca5a5"} fontSize={5.5} textAnchor="middle" fontWeight="700">DELI{currentAisle==="DELI"?"✓":""}</text>
+        {["Fried","Chkn","Sand","Sushi","Cakes","Donuts"].map((t,i)=><text key={t} x={DELI_X+10} y={DAIRY_Y+20+i*13} fill={currentAisle==="DELI"?"#4ade80":"#fca5a5"} fontSize={5} textAnchor="middle">{t}</text>)}
         {/* Back corridor (top) */}
         <line x1={LEFT} y1={TOP} x2={RIGHT} y2={TOP} stroke="#1e2a3a" strokeWidth={6} strokeLinecap="round"/>
         {/* Front corridor (bottom) */}
@@ -483,8 +483,8 @@ function NavigateScreen({ items, setItems, setScreen, setHistory, storeName }) {
         <rect x={LEFT-4} y={BOTTOM+8} width={68} height={24} fill="#1a1207" stroke="#5f3a0d" rx={3}/>
         <text x={LEFT+30} y={BOTTOM+17} fill="#fcd34d" fontSize={6} textAnchor="middle" fontWeight="700">🛒 CHECKOUT</text>
         <text x={LEFT+30} y={BOTTOM+27} fill="#4a5568" fontSize={5} textAnchor="middle">← finish here</text>
-        <rect x={RIGHT-108} y={BOTTOM+8} width={84} height={24} fill="#0d1f12" stroke="#1e5f2a" rx={3}/>
-        <text x={RIGHT-66} y={BOTTOM+17} fill="#86efac" fontSize={6} textAnchor="middle" fontWeight="700">🥦 PRODUCE</text>
+        <rect x={RIGHT-108} y={BOTTOM+8} width={84} height={24} fill={currentAisle==="PROD"?"#0d2f1a":"#0d1f12"} stroke={currentAisle==="PROD"?"#4ade80":"#1e5f2a"} strokeWidth={currentAisle==="PROD"?2:1} rx={3}/>
+        <text x={RIGHT-66} y={BOTTOM+17} fill={currentAisle==="PROD"?"#4ade80":"#86efac"} fontSize={6} textAnchor="middle" fontWeight="700">🥦 PRODUCE{currentAisle==="PROD"?" ← HERE":""}</text>
         <text x={RIGHT-66} y={BOTTOM+27} fill="#2d6a3d" fontSize={5} textAnchor="middle">Fresh Fruit &amp; Veg</text>
         <rect x={RIGHT-22} y={BOTTOM+8} width={DELI_X-RIGHT+26} height={24} fill="#0d0d1f" stroke="#1e1e5f" rx={3}/>
         <text x={RIGHT+10} y={BOTTOM+17} fill="#a5b4fc" fontSize={6} textAnchor="middle" fontWeight="700">🚪 ENTER</text>
