@@ -398,16 +398,18 @@ function ListScreen({ items, setItems, setScreen, savedLists, setSavedLists, his
 function NavigateScreen({ items, setItems, setScreen, setHistory, storeName }) {
   const [stepIdx,setStepIdx]=useState(0);
   const [animRoute,setAnim]=useState([]);
-  // allStops = every aisle that has items (checked OR not) — stable as you grab things
   const allStops=ROUTE_ORDER.filter(a=>items.some(i=>i.aisle===a));
-  // remaining = only aisles still needing items — used for route line on map only
   const remaining=ROUTE_ORDER.filter(a=>items.some(i=>i.aisle===a&&!i.checked));
   const step=Math.min(stepIdx,Math.max(0,allStops.length-1));
   const currentAisle=allStops[step]||null;
-  const currentItems=items.filter(i=>i.aisle===currentAisle&&!i.checked);
-  const toggle=(id)=>setItems(p=>{const u=p.map(i=>i.id===id?{...i,checked:!i.checked}:i);sSet(SK.current,u);return u;});
+  const currentItems=items.filter(i=>i.aisle===currentAisle);
   const allDone=items.length>0&&items.every(i=>i.checked);
-  const goNext=()=>setStepIdx(Math.min(step+1,allStops.length-1));
+  const isLastStop=step>=allStops.length-1;
+  // NEXT STOP: check all items in current aisle, then advance (or finish if last stop)
+  const goNext=()=>{
+    setItems(p=>{const u=p.map(i=>i.aisle===currentAisle?{...i,checked:true}:i);sSet(SK.current,u);return u;});
+    if(!isLastStop) setStepIdx(step+1);
+  };
   const goPrev=()=>setStepIdx(Math.max(step-1,0));
   useEffect(()=>{setAnim([]);remaining.forEach((a,i)=>setTimeout(()=>setAnim(p=>[...p,a]),i*100));},[items.map(i=>i.checked).join("")]);
   useEffect(()=>{if(allDone&&items.length>0){setHistory(prev=>{const e={id:Date.now(),name:`Shop — ${new Date().toLocaleDateString()}`,date:new Date().toLocaleDateString(),items};const u=[e,...prev].slice(0,20);sSet(SK.history,u);return u;});}}, [allDone]);
@@ -500,7 +502,7 @@ function NavigateScreen({ items, setItems, setScreen, setHistory, storeName }) {
         <div style={{height:3,background:"#1a2030",borderRadius:3,overflow:"hidden",marginTop:8}}><div style={{height:"100%",width:`${(items.filter(i=>i.checked).length/Math.max(items.length,1))*100}%`,background:`linear-gradient(90deg,${S.blue},${S.green})`,borderRadius:3,transition:"width 0.5s"}}/></div>
       </div>
       <div style={{padding:"12px 16px",borderBottom:`1px solid ${S.border}`}}>
-        <div style={{fontSize:8,letterSpacing:3,color:S.muted,marginBottom:6}}>STORE MAP · <span style={{color:"#facc15"}}>step {step+1}/{allStops.length} idx={stepIdx} aisle={currentAisle}</span></div>
+        <div style={{fontSize:8,letterSpacing:3,color:S.muted,marginBottom:6}}>STORE MAP</div>
         <MapSVG/>
       </div>
       {allDone?(
@@ -516,15 +518,18 @@ function NavigateScreen({ items, setItems, setScreen, setHistory, storeName }) {
             <div style={{fontSize:9,color:S.muted,background:S.card,padding:"3px 7px",borderRadius:5,letterSpacing:1}}>{step+1} / {allStops.length}</div>
           </div>
           {currentItems.map(item=>(
-            <div key={item.id} style={{display:"flex",alignItems:"center",gap:10,padding:"9px 14px",borderBottom:`1px solid ${S.border}`}}>
+            <div key={item.id} style={{display:"flex",alignItems:"center",gap:10,padding:"9px 14px",borderBottom:`1px solid ${S.border}`,opacity:item.checked?0.4:1}}>
               <span style={{fontSize:18}}>{item.emoji}</span>
-              <div style={{flex:1}}><span style={{fontSize:13,color:S.text}}>{item.name}</span>{item.barcode&&<div style={{fontSize:9,color:S.muted}}>📷 Scanned</div>}</div>
-              <button onClick={()=>toggle(item.id)} style={{background:"#1a2a1a",border:"1px solid #2d4a2d",borderRadius:6,color:S.green,fontSize:10,padding:"4px 10px",cursor:"pointer",letterSpacing:1,fontFamily:"inherit"}}>GRAB</button>
+              <div style={{flex:1}}>
+                <span style={{fontSize:13,color:S.text,textDecoration:item.checked?"line-through":"none"}}>{item.name}</span>
+                {item.barcode&&<div style={{fontSize:9,color:S.muted}}>📷 Scanned</div>}
+              </div>
+              <span style={{fontSize:14}}>{item.checked?"✓":""}</span>
             </div>
           ))}
           <div style={{display:"flex",gap:7,padding:10}}>
             <button onClick={goPrev} disabled={step===0} style={{flex:1,padding:"8px",background:S.card,border:`1px solid ${S.border}`,borderRadius:7,color:step===0?"#2d3748":"#94a3b8",cursor:step===0?"not-allowed":"pointer",fontSize:10,letterSpacing:1,fontFamily:"inherit"}}>← PREV</button>
-            <button onClick={goNext} disabled={step>=allStops.length-1} style={{flex:2,padding:"8px",background:step>=allStops.length-1?"#111":"#0e2a1a",border:`1px solid ${step>=allStops.length-1?S.border:"#2d5a2d"}`,borderRadius:7,color:step>=allStops.length-1?"#2d3748":S.green,cursor:step>=allStops.length-1?"not-allowed":"pointer",fontSize:10,fontWeight:700,letterSpacing:1,fontFamily:"inherit"}}>NEXT STOP →</button>
+            <button onClick={goNext} style={{flex:2,padding:"8px",background:"#0e2a1a",border:"1px solid #2d5a2d",borderRadius:7,color:S.green,cursor:"pointer",fontSize:10,fontWeight:700,letterSpacing:1,fontFamily:"inherit"}}>{isLastStop?"GOT IT ALL ✓":"NEXT STOP →"}</button>
           </div>
         </div>
       ):items.length===0?(
