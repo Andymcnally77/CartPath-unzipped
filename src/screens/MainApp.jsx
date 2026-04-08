@@ -395,6 +395,76 @@ function ListScreen({ items, setItems, setScreen, savedLists, setSavedLists, his
 }
 
 // ── NAVIGATE SCREEN ───────────────────────────────────────────────────────────
+function StoreMap({ currentAisle, remaining, items }) {
+  const LEFT=22,RIGHT=282,TOP=46,BOTTOM=166,DAIRY_Y=30,DELI_X=294;
+  const spacing=(RIGHT-LEFT)/15;
+  const ax=n=>LEFT+(n-1)*spacing;
+  const midY=(TOP+BOTTOM)/2;
+  const activeSet=new Set(items.filter(i=>!i.checked).map(i=>i.aisle));
+  const doneSet=new Set(items.filter(i=>i.checked).map(i=>i.aisle));
+  const numRoute=remaining.filter(a=>!isNaN(Number(a))).map(Number);
+  const LABELS={1:"Wine/Beer",2:"Hardware",3:"Cleaning",4:"Health",5:"Baby",6:"Seasonal",7:"Picnic",8:"Desserts",9:"Organic",10:"Pet",11:"Drinks",12:"Soup",13:"Rice",14:"Canned",15:"Cereal",16:"Bread"};
+  const pts=[[ax(16)+4, BOTTOM+20]];
+  let up=true;
+  numRoute.forEach(n=>{
+    const x=ax(n);
+    if(up){pts.push([x,BOTTOM]);pts.push([x,TOP]);}
+    else{pts.push([x,TOP]);pts.push([x,BOTTOM]);}
+    up=!up;
+  });
+  const last=pts[pts.length-1];
+  if(last[1]!==TOP) pts.push([last[0],TOP]);
+  pts.push([LEFT,TOP]);
+  pts.push([LEFT-4,BOTTOM+20]);
+  const pd=pts.map((p,i)=>`${i===0?"M":"L"}${p[0].toFixed(1)},${p[1].toFixed(1)}`).join(" ");
+  return (
+    <svg viewBox="0 0 316 210" width="100%" style={{display:"block"}}>
+      <rect x={0} y={0} width={316} height={210} fill="#0d1117"/>
+      <rect x={LEFT-4} y={DAIRY_Y-8} width={DELI_X-LEFT+8} height={20} fill={currentAisle==="DAIRY"?"#0d2f50":"#0d1f35"} stroke={currentAisle==="DAIRY"?"#4ade80":"#1e3a5f"} strokeWidth={currentAisle==="DAIRY"?2:1} rx={3}/>
+      <text x={(LEFT+DELI_X)/2} y={DAIRY_Y+5} fill={currentAisle==="DAIRY"?"#4ade80":"#bfdbfe"} fontSize={6} textAnchor="middle" fontWeight="700">🥛 DAIRY · EGGS · BUTTER · OJ · YOGURT · MILK · CREAMER{currentAisle==="DAIRY"?" ← HERE":""}</text>
+      <rect x={DELI_X} y={DAIRY_Y-8} width={20} height={BOTTOM-DAIRY_Y+44} fill={currentAisle==="DELI"?"#2a0d0d":"#1f0d0d"} stroke={currentAisle==="DELI"?"#4ade80":"#5f1e1e"} strokeWidth={currentAisle==="DELI"?2:1} rx={3}/>
+      <text x={DELI_X+10} y={DAIRY_Y+8} fill={currentAisle==="DELI"?"#4ade80":"#fca5a5"} fontSize={5.5} textAnchor="middle" fontWeight="700">DELI{currentAisle==="DELI"?" ←":""}</text>
+      {["Fried","Chkn","Sand","Sushi","Cakes","Donuts"].map((t,i)=><text key={t} x={DELI_X+10} y={DAIRY_Y+20+i*13} fill={currentAisle==="DELI"?"#4ade80":"#fca5a5"} fontSize={5} textAnchor="middle">{t}</text>)}
+      <line x1={LEFT} y1={TOP} x2={RIGHT} y2={TOP} stroke="#1e2a3a" strokeWidth={6} strokeLinecap="round"/>
+      <line x1={LEFT} y1={BOTTOM} x2={RIGHT} y2={BOTTOM} stroke="#1e2a3a" strokeWidth={6} strokeLinecap="round"/>
+      {numRoute.length>0&&<path d={pd} stroke="#4ade80" strokeWidth={1.5} strokeDasharray="4,2" fill="none" strokeLinecap="round" strokeLinejoin="round" opacity={0.75}/>}
+      {[...Array(16)].map((_,i)=>{
+        const n=i+1,x=ax(n);
+        const isCur=String(n)===currentAisle,has=activeSet.has(String(n)),done=doneSet.has(String(n))&&!has;
+        const col=isCur?"#4ade80":has?"#2d5a3d":done?"#1a3a1a":"#1a1f2e";
+        const lw=isCur?4:has?3:2;
+        const routeIdx=numRoute.indexOf(n);
+        const goUp=routeIdx%2===0;
+        const s=3;
+        const arrowPts=goUp?`${x},${midY-s} ${x-s},${midY+s} ${x+s},${midY+s}`:`${x},${midY+s} ${x-s},${midY-s} ${x+s},${midY-s}`;
+        return (<g key={n}>
+          <line x1={x} y1={TOP} x2={x} y2={BOTTOM} stroke={col} strokeWidth={lw}/>
+          <text x={x} y={TOP-4} fill={isCur?"#4ade80":has?"#2d6a3d":"#2d3748"} fontSize={6} textAnchor="middle" fontWeight="700">{n}</text>
+          <text x={x+2} y={midY} fill={isCur?"#4ade8077":has?"#1e4a2e":"#161b24"} fontSize={5.5} textAnchor="middle" fontWeight={has?"700":"normal"} transform={`rotate(-90,${x+2},${midY})`}>{LABELS[n]}</text>
+          {routeIdx>=0&&<polygon points={arrowPts} fill="#4ade80" opacity="0.65"/>}
+        </g>);
+      })}
+      {numRoute.map((n,i)=>{
+        const x=ax(n),isCur=String(n)===currentAisle;
+        return(<g key={n}>
+          <circle cx={x} cy={midY} r={isCur?8:5.5} fill={isCur?"#4ade80":"#0a1f12"} stroke="#4ade80" strokeWidth={1}/>
+          <text x={x} y={midY+2.5} fill={isCur?"#000":"#4ade80"} fontSize={5.5} textAnchor="middle" fontWeight="900">{i+1}</text>
+        </g>);
+      })}
+      {currentAisle&&!isNaN(Number(currentAisle))&&<text x={ax(Number(currentAisle))+11} y={midY-10} fill="#4ade80" fontSize={5.5} fontWeight="700">← HERE</text>}
+      <rect x={LEFT-4} y={BOTTOM+8} width={68} height={24} fill="#1a1207" stroke="#5f3a0d" rx={3}/>
+      <text x={LEFT+30} y={BOTTOM+17} fill="#fcd34d" fontSize={6} textAnchor="middle" fontWeight="700">🛒 CHECKOUT</text>
+      <text x={LEFT+30} y={BOTTOM+27} fill="#4a5568" fontSize={5} textAnchor="middle">← finish here</text>
+      <rect x={RIGHT-108} y={BOTTOM+8} width={84} height={24} fill={currentAisle==="PROD"?"#0d2f1a":"#0d1f12"} stroke={currentAisle==="PROD"?"#4ade80":"#1e5f2a"} strokeWidth={currentAisle==="PROD"?2:1} rx={3}/>
+      <text x={RIGHT-66} y={BOTTOM+17} fill={currentAisle==="PROD"?"#4ade80":"#86efac"} fontSize={6} textAnchor="middle" fontWeight="700">🥦 PRODUCE{currentAisle==="PROD"?" ← HERE":""}</text>
+      <text x={RIGHT-66} y={BOTTOM+27} fill="#2d6a3d" fontSize={5} textAnchor="middle">Fresh Fruit &amp; Veg</text>
+      <rect x={RIGHT-22} y={BOTTOM+8} width={DELI_X-RIGHT+26} height={24} fill="#0d0d1f" stroke="#1e1e5f" rx={3}/>
+      <text x={RIGHT+10} y={BOTTOM+17} fill="#a5b4fc" fontSize={6} textAnchor="middle" fontWeight="700">🚪 ENTER</text>
+      <text x={RIGHT+10} y={BOTTOM+27} fill="#4a5568" fontSize={5} textAnchor="middle">start →</text>
+    </svg>
+  );
+}
+
 function NavigateScreen({ items, setItems, setScreen, setHistory, storeName }) {
   const [stepIdx,setStepIdx]=useState(0);
   const [animRoute,setAnim]=useState([]);
@@ -413,85 +483,6 @@ function NavigateScreen({ items, setItems, setScreen, setHistory, storeName }) {
   const goPrev=()=>setStepIdx(Math.max(step-1,0));
   useEffect(()=>{setAnim([]);remaining.forEach((a,i)=>setTimeout(()=>setAnim(p=>[...p,a]),i*100));},[items.map(i=>i.checked).join("")]);
   useEffect(()=>{if(allDone&&items.length>0){setHistory(prev=>{const e={id:Date.now(),name:`Shop — ${new Date().toLocaleDateString()}`,date:new Date().toLocaleDateString(),items};const u=[e,...prev].slice(0,20);sSet(SK.history,u);return u;});}}, [allDone]);
-  // ── SVG store map ──────────────────────────────────────────────
-  const MapSVG = () => {
-    const LEFT=22,RIGHT=282,TOP=46,BOTTOM=166,DAIRY_Y=30,DELI_X=294;
-    const spacing=(RIGHT-LEFT)/15;
-    const ax=n=>LEFT+(n-1)*spacing;
-    const midY=(TOP+BOTTOM)/2;
-    const activeSet=new Set(items.filter(i=>!i.checked).map(i=>i.aisle));
-    const doneSet=new Set(items.filter(i=>i.checked).map(i=>i.aisle));
-    const numRoute=remaining.filter(a=>!isNaN(Number(a))).map(Number);
-    const LABELS={1:"Wine/Beer",2:"Hardware",3:"Cleaning",4:"Health",5:"Baby",6:"Seasonal",7:"Picnic",8:"Desserts",9:"Organic",10:"Pet",11:"Drinks",12:"Soup",13:"Rice",14:"Canned",15:"Cereal",16:"Bread"};
-    // build orthogonal route path
-    const pts=[[ax(16)+4, BOTTOM+20]];
-    let up=true;
-    numRoute.forEach(n=>{
-      const x=ax(n);
-      if(up){pts.push([x,BOTTOM]);pts.push([x,TOP]);}
-      else{pts.push([x,TOP]);pts.push([x,BOTTOM]);}
-      up=!up;
-    });
-    const last=pts[pts.length-1];
-    if(last[1]!==TOP) pts.push([last[0],TOP]);
-    pts.push([LEFT,TOP]);
-    pts.push([LEFT-4,BOTTOM+20]);
-    const pd=pts.map((p,i)=>`${i===0?"M":"L"}${p[0].toFixed(1)},${p[1].toFixed(1)}`).join(" ");
-    return (
-      <svg viewBox="0 0 316 210" width="100%" style={{display:"block"}}>
-        <rect x={0} y={0} width={316} height={210} fill="#0d1117"/>
-        {/* Dairy */}
-        <rect x={LEFT-4} y={DAIRY_Y-8} width={DELI_X-LEFT+8} height={20} fill={currentAisle==="DAIRY"?"#0d2f50":"#0d1f35"} stroke={currentAisle==="DAIRY"?"#4ade80":"#1e3a5f"} strokeWidth={currentAisle==="DAIRY"?2:1} rx={3}/>
-        <text x={(LEFT+DELI_X)/2} y={DAIRY_Y+5} fill={currentAisle==="DAIRY"?"#4ade80":"#bfdbfe"} fontSize={6} textAnchor="middle" fontWeight="700">🥛 DAIRY · EGGS · BUTTER · OJ · YOGURT · MILK · CREAMER{currentAisle==="DAIRY"?" ← HERE":""}</text>
-        {/* Deli */}
-        <rect x={DELI_X} y={DAIRY_Y-8} width={20} height={BOTTOM-DAIRY_Y+44} fill={currentAisle==="DELI"?"#2a0d0d":"#1f0d0d"} stroke={currentAisle==="DELI"?"#4ade80":"#5f1e1e"} strokeWidth={currentAisle==="DELI"?2:1} rx={3}/>
-        <text x={DELI_X+10} y={DAIRY_Y+8} fill={currentAisle==="DELI"?"#4ade80":"#fca5a5"} fontSize={5.5} textAnchor="middle" fontWeight="700">DELI{currentAisle==="DELI"?"✓":""}</text>
-        {["Fried","Chkn","Sand","Sushi","Cakes","Donuts"].map((t,i)=><text key={t} x={DELI_X+10} y={DAIRY_Y+20+i*13} fill={currentAisle==="DELI"?"#4ade80":"#fca5a5"} fontSize={5} textAnchor="middle">{t}</text>)}
-        {/* Back corridor (top) */}
-        <line x1={LEFT} y1={TOP} x2={RIGHT} y2={TOP} stroke="#1e2a3a" strokeWidth={6} strokeLinecap="round"/>
-        {/* Front corridor (bottom) */}
-        <line x1={LEFT} y1={BOTTOM} x2={RIGHT} y2={BOTTOM} stroke="#1e2a3a" strokeWidth={6} strokeLinecap="round"/>
-        {/* Route */}
-        {numRoute.length>0&&<path d={pd} stroke="#4ade80" strokeWidth={1.5} strokeDasharray="4,2" fill="none" strokeLinecap="round" strokeLinejoin="round" opacity={0.75}/>}
-        {/* Aisle lines */}
-        {[...Array(16)].map((_,i)=>{
-          const n=i+1,x=ax(n);
-          const isCur=String(n)===currentAisle,has=activeSet.has(String(n)),done=doneSet.has(String(n))&&!has;
-          const col=isCur?"#4ade80":has?"#2d5a3d":done?"#1a3a1a":"#1a1f2e";
-          const lw=isCur?4:has?3:2;
-          const routeIdx=numRoute.indexOf(n);
-          const goUp=routeIdx%2===0;
-          const s=3;
-          const arrowPts=goUp?`${x},${midY-s} ${x-s},${midY+s} ${x+s},${midY+s}`:`${x},${midY+s} ${x-s},${midY-s} ${x+s},${midY-s}`;
-          return (<g key={n}>
-            <line x1={x} y1={TOP} x2={x} y2={BOTTOM} stroke={col} strokeWidth={lw}/>
-            <text x={x} y={TOP-4} fill={isCur?"#4ade80":has?"#2d6a3d":"#2d3748"} fontSize={6} textAnchor="middle" fontWeight="700">{n}</text>
-            <text x={x+2} y={midY} fill={isCur?"#4ade8077":has?"#1e4a2e":"#161b24"} fontSize={5.5} textAnchor="middle" fontWeight={has?"700":"normal"} transform={`rotate(-90,${x+2},${midY})`}>{LABELS[n]}</text>
-            {routeIdx>=0&&<polygon points={arrowPts} fill="#4ade80" opacity="0.65"/>}
-          </g>);
-        })}
-        {/* Stop badges */}
-        {numRoute.map((n,i)=>{
-          const x=ax(n),isCur=String(n)===currentAisle;
-          return(<g key={n}>
-            <circle cx={x} cy={midY} r={isCur?8:5.5} fill={isCur?"#4ade80":"#0a1f12"} stroke="#4ade80" strokeWidth={1}/>
-            <text x={x} y={midY+2.5} fill={isCur?"#000":"#4ade80"} fontSize={5.5} textAnchor="middle" fontWeight="900">{i+1}</text>
-          </g>);
-        })}
-        {currentAisle&&!isNaN(Number(currentAisle))&&<text x={ax(Number(currentAisle))+11} y={midY-10} fill="#4ade80" fontSize={5.5} fontWeight="700">← HERE</text>}
-        {/* Floor */}
-        <rect x={LEFT-4} y={BOTTOM+8} width={68} height={24} fill="#1a1207" stroke="#5f3a0d" rx={3}/>
-        <text x={LEFT+30} y={BOTTOM+17} fill="#fcd34d" fontSize={6} textAnchor="middle" fontWeight="700">🛒 CHECKOUT</text>
-        <text x={LEFT+30} y={BOTTOM+27} fill="#4a5568" fontSize={5} textAnchor="middle">← finish here</text>
-        <rect x={RIGHT-108} y={BOTTOM+8} width={84} height={24} fill={currentAisle==="PROD"?"#0d2f1a":"#0d1f12"} stroke={currentAisle==="PROD"?"#4ade80":"#1e5f2a"} strokeWidth={currentAisle==="PROD"?2:1} rx={3}/>
-        <text x={RIGHT-66} y={BOTTOM+17} fill={currentAisle==="PROD"?"#4ade80":"#86efac"} fontSize={6} textAnchor="middle" fontWeight="700">🥦 PRODUCE{currentAisle==="PROD"?" ← HERE":""}</text>
-        <text x={RIGHT-66} y={BOTTOM+27} fill="#2d6a3d" fontSize={5} textAnchor="middle">Fresh Fruit &amp; Veg</text>
-        <rect x={RIGHT-22} y={BOTTOM+8} width={DELI_X-RIGHT+26} height={24} fill="#0d0d1f" stroke="#1e1e5f" rx={3}/>
-        <text x={RIGHT+10} y={BOTTOM+17} fill="#a5b4fc" fontSize={6} textAnchor="middle" fontWeight="700">🚪 ENTER</text>
-        <text x={RIGHT+10} y={BOTTOM+27} fill="#4a5568" fontSize={5} textAnchor="middle">start →</text>
-      </svg>
-    );
-  };
   return (
     <div style={{flex:1,overflowY:"auto",display:"flex",flexDirection:"column"}}>
       <div style={{padding:"14px 20px 10px",background:S.surface,borderBottom:`1px solid ${S.border}`,flexShrink:0}}>
@@ -503,7 +494,7 @@ function NavigateScreen({ items, setItems, setScreen, setHistory, storeName }) {
       </div>
       <div style={{padding:"12px 16px",borderBottom:`1px solid ${S.border}`}}>
         <div style={{fontSize:8,letterSpacing:3,color:S.muted,marginBottom:6}}>STORE MAP</div>
-        <MapSVG/>
+        <StoreMap currentAisle={currentAisle} remaining={remaining} items={items}/>
       </div>
       {allDone?(
         <div style={{margin:"16px 20px",background:"linear-gradient(135deg,#0d2a0d,#0a1f0a)",border:"1px solid #2d5a2d",borderRadius:12,padding:"20px",textAlign:"center"}}>
