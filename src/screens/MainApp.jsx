@@ -396,15 +396,18 @@ function ListScreen({ items, setItems, setScreen, savedLists, setSavedLists, his
 
 // ── NAVIGATE SCREEN ───────────────────────────────────────────────────────────
 function NavigateScreen({ items, setItems, setScreen, setHistory, storeName }) {
-  const [step,setStep]=useState(0);
+  const [stepIdx,setStepIdx]=useState(0);
   const [animRoute,setAnim]=useState([]);
   const remaining=ROUTE_ORDER.filter(a=>items.some(i=>i.aisle===a&&!i.checked));
-  useEffect(()=>{setAnim([]);remaining.forEach((a,i)=>setTimeout(()=>setAnim(p=>[...p,a]),i*100));},[items.map(i=>i.checked).join("")]);
-  useEffect(()=>{if(step>=remaining.length&&remaining.length>0)setStep(Math.max(0,remaining.length-1));},[remaining.length]);
+  // step is always a valid index — when remaining shrinks, remaining[step] auto-advances to the next aisle
+  const step=Math.min(stepIdx,Math.max(0,remaining.length-1));
   const currentAisle=remaining[step]||null;
   const currentItems=items.filter(i=>i.aisle===currentAisle&&!i.checked);
   const toggle=(id)=>setItems(p=>{const u=p.map(i=>i.id===id?{...i,checked:!i.checked}:i);sSet(SK.current,u);return u;});
   const allDone=items.length>0&&items.every(i=>i.checked);
+  const goNext=()=>setStepIdx(Math.min(step+1,remaining.length-1));
+  const goPrev=()=>setStepIdx(Math.max(step-1,0));
+  useEffect(()=>{setAnim([]);remaining.forEach((a,i)=>setTimeout(()=>setAnim(p=>[...p,a]),i*100));},[items.map(i=>i.checked).join("")]);
   useEffect(()=>{if(allDone&&items.length>0){setHistory(prev=>{const e={id:Date.now(),name:`Shop — ${new Date().toLocaleDateString()}`,date:new Date().toLocaleDateString(),items};const u=[e,...prev].slice(0,20);sSet(SK.history,u);return u;});}}, [allDone]);
   // ── SVG store map ──────────────────────────────────────────────
   const MapSVG = () => {
@@ -518,8 +521,8 @@ function NavigateScreen({ items, setItems, setScreen, setHistory, storeName }) {
             </div>
           ))}
           <div style={{display:"flex",gap:7,padding:10}}>
-            <button onClick={()=>setStep(s=>Math.max(0,s-1))} disabled={step===0} style={{flex:1,padding:"8px",background:S.card,border:`1px solid ${S.border}`,borderRadius:7,color:step===0?"#2d3748":"#94a3b8",cursor:step===0?"not-allowed":"pointer",fontSize:10,letterSpacing:1,fontFamily:"inherit"}}>← PREV</button>
-            <button onClick={()=>setStep(s=>Math.min(remaining.length-1,s+1))} disabled={step>=remaining.length-1} style={{flex:2,padding:"8px",background:step>=remaining.length-1?"#111":"#0e2a1a",border:`1px solid ${step>=remaining.length-1?S.border:"#2d5a2d"}`,borderRadius:7,color:step>=remaining.length-1?"#2d3748":S.green,cursor:step>=remaining.length-1?"not-allowed":"pointer",fontSize:10,fontWeight:700,letterSpacing:1,fontFamily:"inherit"}}>NEXT STOP →</button>
+            <button onClick={goPrev} disabled={step===0} style={{flex:1,padding:"8px",background:S.card,border:`1px solid ${S.border}`,borderRadius:7,color:step===0?"#2d3748":"#94a3b8",cursor:step===0?"not-allowed":"pointer",fontSize:10,letterSpacing:1,fontFamily:"inherit"}}>← PREV</button>
+            <button onClick={goNext} disabled={step>=remaining.length-1} style={{flex:2,padding:"8px",background:step>=remaining.length-1?"#111":"#0e2a1a",border:`1px solid ${step>=remaining.length-1?S.border:"#2d5a2d"}`,borderRadius:7,color:step>=remaining.length-1?"#2d3748":S.green,cursor:step>=remaining.length-1?"not-allowed":"pointer",fontSize:10,fontWeight:700,letterSpacing:1,fontFamily:"inherit"}}>NEXT STOP →</button>
           </div>
         </div>
       ):items.length===0?(
