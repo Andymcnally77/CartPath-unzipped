@@ -16,7 +16,7 @@ export const STORE_AISLES = {
   "14": "Canned Goods",
   "15": "Cereal & Baking",
   "16": "Bread & Condiments",
-  "DAIRY": "Dairy & Eggs",
+  "DAIRY": "Dairy & Eggs — milk, butter, cheese, yogurt, Greek yogurt, cream cheese, sour cream, OJ, juice, creamer",
   "DELI": "Deli & Hot Foods",
   "PROD": "Produce",
 };
