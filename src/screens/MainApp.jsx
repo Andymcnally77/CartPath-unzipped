@@ -505,10 +505,10 @@ function StoreMap({ currentAisle, allStops, items }) {
         const isDone=checkedSet.has(String(n))&&!isCur;
         return(<g key={n}>
           <line x1={x} y1={TOP} x2={x} y2={MID-GAP}
-            stroke={isCur?"#2a5a38":isDone?"#142814":isStop?"#1e4028":"#111820"} strokeWidth={isCur?3:isStop?2:1}/>
+            stroke={isCur?"#4ade80":isDone?"#1e4a22":isStop?"#2a7040":"#1e3040"} strokeWidth={isCur?3:isStop?2:1.5}/>
           <line x1={x} y1={MID+GAP} x2={x} y2={BOTTOM}
-            stroke={isCur?"#2a5a38":isDone?"#142814":isStop?"#1e4028":"#111820"} strokeWidth={isCur?3:isStop?2:1}/>
-          <text x={x} y={TOP-4} fill={isCur?"#4ade80":isStop?"#2d6640":"#1e2a22"}
+            stroke={isCur?"#4ade80":isDone?"#1e4a22":isStop?"#2a7040":"#1e3040"} strokeWidth={isCur?3:isStop?2:1.5}/>
+          <text x={x} y={TOP-4} fill={isCur?"#4ade80":isStop?"#4ade80":"#3a5060"}
             fontSize={5.5} textAnchor="middle" fontWeight="700">{n}</text>
         </g>);
       })}
