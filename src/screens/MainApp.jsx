@@ -414,74 +414,59 @@ function StoreMap({ currentAisle, allStops, items }) {
   const curIdx=allStops.indexOf(currentAisle);
 
   // ── Fully orthogonal route builder ──────────────────────────────────────────
-  // Rules: only push horizontal OR vertical segments, never both simultaneously.
-  // Corridors: BOTTOM(166)=front, MID(106)=middle opening, TOP(46)=back, DAIRY_Y(30)=back wall
-  // DELI→aisle transitions use the MID corridor for a direct connection.
-  const pts=[[ENTRANCE_X,ENTRANCE_Y],[ENTRANCE_X,BOTTOM]]; // enter → step up to front corridor
+  // Corridors: BOTTOM(166)=front, MID(106)=middle, TOP(46)=back corridor, DAIRY_Y(30)=back wall
+  // Key rule: DAIRY is visited IN-PLACE — no lateral detour to the store centre.
+  // The route simply steps up to the back wall at the current aisle x, then returns.
+  const pts=[[ENTRANCE_X,ENTRANCE_Y],[ENTRANCE_X,BOTTOM]];
   let cy=BOTTOM,cx=ENTRANCE_X;
-  const stopEndIdxs=[];   // pts index at the END of each stop's path segment
+  const stopEndIdxs=[];
+  const stopBadgePos={};  // computed dynamically so DAIRY badge is on the actual route
 
   allStops.forEach(aisle=>{
     if(!isNaN(Number(aisle))){
       const n=Number(aisle),x=ax(n);
-      // 1. Normalise above-TOP positions (DAIRY_Y) → drop to TOP first
-      if(cy<TOP-2){pts.push([cx,TOP]);cy=TOP;}
-      // 2. Route based on which corridor we're currently on
+      if(cy<TOP-2){pts.push([cx,TOP]);cy=TOP;}  // normalise from DAIRY_ROUTE_Y → TOP
       if(cy>=BOTTOM-2){
-        // On BOTTOM corridor → slide to aisle x, go UP to TOP
         pts.push([x,BOTTOM]);pts.push([x,TOP]);cy=TOP;cx=x;
       } else if(cy<=TOP+2){
-        // On TOP corridor → slide to aisle x, go DOWN to BOTTOM
         pts.push([x,TOP]);pts.push([x,BOTTOM]);cy=BOTTOM;cx=x;
       } else {
-        // On MID corridor (came from DELI) → cross MID to aisle x,
-        // drop to BOTTOM to cover the lower half, then rise to TOP
+        // MID corridor (after DELI) → cross MID, drop to BOTTOM, rise to TOP
         pts.push([x,MID]);pts.push([x,BOTTOM]);pts.push([x,TOP]);cy=TOP;cx=x;
       }
+      stopBadgePos[aisle]=[x,badgeY];
     } else if(aisle==="DAIRY"){
-      // Get to TOP corridor first (from any starting level)
       if(cy>=BOTTOM-2){pts.push([cx,TOP]);cy=TOP;}
-      else if(cy>TOP+2&&cy<BOTTOM-2){pts.push([cx,TOP]);cy=TOP;} // from MID
-      // Slide along TOP corridor to DAIRY centre, then touch the bottom edge of the back wall
-      // (DAIRY_ROUTE_Y = bottom edge of DAIRY rect — route stays in the walkable gap)
-      pts.push([DAIRY_CX,TOP]);
-      pts.push([DAIRY_CX,DAIRY_ROUTE_Y]);cy=DAIRY_ROUTE_Y;cx=DAIRY_CX;
+      else if(cy>TOP+2&&cy<BOTTOM-2){pts.push([cx,TOP]);cy=TOP;}
+      // Touch the back wall AT the current aisle column — no unnecessary lateral movement
+      pts.push([cx,DAIRY_ROUTE_Y]);
+      pts.push([cx,TOP]);
+      cy=TOP; // cx unchanged — most efficient path
+      stopBadgePos["DAIRY"]=[cx,DAIRY_ROUTE_Y];
     } else if(aisle==="PROD"){
-      // Get to BOTTOM corridor
-      if(cy<TOP-2){pts.push([cx,TOP]);cy=TOP;}           // from DAIRY_ROUTE_Y → TOP
-      if(cy<=TOP+2||(cy>TOP+2&&cy<BOTTOM-2)){pts.push([cx,BOTTOM]);cy=BOTTOM;} // TOP/MID → BOTTOM
-      // Slide to PROD column, drop into produce area
-      pts.push([PROD_CX,BOTTOM]);pts.push([PROD_CX,PROD_CY]);cy=PROD_CY;cx=PROD_CX;
-    } else if(aisle==="DELI"){
-      // Get to BOTTOM corridor
       if(cy<TOP-2){pts.push([cx,TOP]);cy=TOP;}
       if(cy<=TOP+2||(cy>TOP+2&&cy<BOTTOM-2)){pts.push([cx,BOTTOM]);cy=BOTTOM;}
-      // Slide right to DELI_ROUTE_X (left edge of DELI wall — walkable), rise to DELI height (MID)
+      pts.push([PROD_CX,BOTTOM]);pts.push([PROD_CX,PROD_CY]);cy=PROD_CY;cx=PROD_CX;
+      stopBadgePos["PROD"]=[PROD_CX,PROD_CY];
+    } else if(aisle==="DELI"){
+      if(cy<TOP-2){pts.push([cx,TOP]);cy=TOP;}
+      if(cy<=TOP+2||(cy>TOP+2&&cy<BOTTOM-2)){pts.push([cx,BOTTOM]);cy=BOTTOM;}
       pts.push([DELI_ROUTE_X,BOTTOM]);pts.push([DELI_ROUTE_X,DELI_CY]);cy=DELI_CY;cx=DELI_ROUTE_X;
+      stopBadgePos["DELI"]=[DELI_ROUTE_X,DELI_CY];
     }
     stopEndIdxs.push(pts.length-1);
   });
 
-  // Route to checkout — always orthogonal
+  // Route to checkout
   if(cy<TOP-2){pts.push([cx,TOP]);cy=TOP;}
   if(cy<=TOP+2||(cy>TOP+2&&cy<BOTTOM-2)){pts.push([cx,BOTTOM]);cy=BOTTOM;}
-  if(cy>BOTTOM+2){pts.push([cx,BOTTOM]);} // from PROD/entrance level → rise to front corridor
+  if(cy>BOTTOM+2){pts.push([cx,BOTTOM]);}
   pts.push([CHECKOUT_X,BOTTOM]);pts.push([CHECKOUT_X,CHECKOUT_Y]);
 
-  // Split route at current stop: everything before = dim "done", rest = bright "upcoming"
   const splitIdx=curIdx>0?stopEndIdxs[curIdx-1]:0;
   const mkPath=arr=>arr.map((p,i)=>`${i===0?"M":"L"}${p[0].toFixed(1)},${p[1].toFixed(1)}`).join(" ");
   const donePd=splitIdx>0?mkPath(pts.slice(0,splitIdx+1)):"";
   const upcomingPd=mkPath(pts.slice(splitIdx));
-
-  // Badge position for each stop — sits ON the route line
-  const badgePos=aisle=>{
-    if(!isNaN(Number(aisle))) return [ax(Number(aisle)),badgeY];
-    if(aisle==="DELI")   return [DELI_ROUTE_X, DELI_CY];
-    if(aisle==="DAIRY")  return [DAIRY_CX, DAIRY_ROUTE_Y];
-    if(aisle==="PROD")   return [PROD_CX, PROD_CY];
-    return null;
-  };
 
   return (
     <svg viewBox="0 0 316 210" width="100%" style={{display:"block"}}>
@@ -512,15 +497,19 @@ function StoreMap({ currentAisle, allStops, items }) {
       <rect x={LEFT-2} y={MID-3}    width={DELI_ROUTE_X-LEFT+4} height={6} fill="#0c1820" rx={2}/>
       <rect x={LEFT-2} y={BOTTOM-4} width={DELI_ROUTE_X-LEFT+4} height={8} fill="#0e1a26" rx={2}/>
 
-      {/* ── Aisle columns — ONLY for stops, no clutter ───────────────── */}
-      {allStops.filter(a=>!isNaN(Number(a))).map(aisle=>{
-        const n=Number(aisle),x=ax(n);
-        const isCur=aisle===currentAisle,isDone=checkedSet.has(aisle)&&!isCur;
-        return(<g key={aisle}>
-          <line x1={x} y1={TOP} x2={x} y2={BOTTOM}
-            stroke={isCur?"#2a5a38":isDone?"#142814":"#1a3824"} strokeWidth={2.5}/>
-          <text x={x} y={TOP-5} fill={isCur?"#4ade80":isDone?"#2d5a2d":"#336644"}
-            fontSize={6} textAnchor="middle" fontWeight="700">{n}</text>
+      {/* ── All 16 aisle columns — stops brighter, others dim for context ── */}
+      {[...Array(16)].map((_,i)=>{
+        const n=i+1,x=ax(n);
+        const isStop=allStops.includes(String(n));
+        const isCur=String(n)===currentAisle;
+        const isDone=checkedSet.has(String(n))&&!isCur;
+        return(<g key={n}>
+          <line x1={x} y1={TOP} x2={x} y2={MID-GAP}
+            stroke={isCur?"#2a5a38":isDone?"#142814":isStop?"#1e4028":"#111820"} strokeWidth={isCur?3:isStop?2:1}/>
+          <line x1={x} y1={MID+GAP} x2={x} y2={BOTTOM}
+            stroke={isCur?"#2a5a38":isDone?"#142814":isStop?"#1e4028":"#111820"} strokeWidth={isCur?3:isStop?2:1}/>
+          <text x={x} y={TOP-4} fill={isCur?"#4ade80":isStop?"#2d6640":"#1e2a22"}
+            fontSize={5.5} textAnchor="middle" fontWeight="700">{n}</text>
         </g>);
       })}
 
@@ -532,7 +521,7 @@ function StoreMap({ currentAisle, allStops, items }) {
 
       {/* ── Numbered stop badges ON the route line ───────────────────── */}
       {allStops.map((aisle,i)=>{
-        const pos=badgePos(aisle); if(!pos) return null;
+        const pos=stopBadgePos[aisle]; if(!pos) return null;
         const [bx,by]=pos;
         const isCur=aisle===currentAisle,isDone=checkedSet.has(aisle)&&!isCur;
         const r=isCur?9:6.5;
