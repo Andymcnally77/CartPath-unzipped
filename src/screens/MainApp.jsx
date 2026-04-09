@@ -513,11 +513,19 @@ function StoreMap({ currentAisle, allStops, items }) {
         </g>);
       })}
 
-      {/* ── THE ROUTE — one clear line ───────────────────────────────── */}
+      {/* ── THE ROUTE — animated dashes on upcoming, solid dim on done ── */}
+      <style>{`@keyframes dash{to{stroke-dashoffset:0}}`}</style>
       {donePd&&<path d={donePd} stroke="#1a3a1a" strokeWidth={3}
         fill="none" strokeLinecap="round" strokeLinejoin="round"/>}
-      <path d={upcomingPd} stroke="#4ade80" strokeWidth={3}
+      {/* solid green underlay so the gaps between dashes don't look empty */}
+      <path d={upcomingPd} stroke="#1a4a1a" strokeWidth={3}
         fill="none" strokeLinecap="round" strokeLinejoin="round"/>
+      {/* animated dashes on top */}
+      <path d={upcomingPd} stroke="#4ade80" strokeWidth={3}
+        fill="none" strokeLinecap="round" strokeLinejoin="round"
+        strokeDasharray="10 6"
+        strokeDashoffset="-160"
+        style={{animation:"dash 1.8s linear infinite"}}/>
 
       {/* ── Numbered stop badges ON the route line ───────────────────── */}
       {allStops.map((aisle,i)=>{
