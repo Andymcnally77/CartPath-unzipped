@@ -395,106 +395,160 @@ function ListScreen({ items, setItems, setScreen, savedLists, setSavedLists, his
 }
 
 // ── NAVIGATE SCREEN ───────────────────────────────────────────────────────────
-function StoreMap({ currentAisle, remaining, items }) {
+function StoreMap({ currentAisle, allStops, items }) {
   const LEFT=22,RIGHT=282,TOP=46,BOTTOM=166,DAIRY_Y=30,DELI_X=294;
-  const MID=106; // horizontal mid-store cross-aisle
-  const GAP=4;   // gap in aisle lines where corridor crosses
+  const MID=106,GAP=4;
   const spacing=(RIGHT-LEFT)/15;
   const ax=n=>LEFT+(n-1)*spacing;
-  const badgeY=MID-18; // badges sit in the upper half above the mid corridor
-  const activeSet=new Set(items.filter(i=>!i.checked).map(i=>i.aisle));
-  const doneSet=new Set(items.filter(i=>i.checked).map(i=>i.aisle));
-  const numRoute=remaining.filter(a=>!isNaN(Number(a))).map(Number);
-  const LABELS={1:"Wine/Beer",2:"Hardware",3:"Cleaning",4:"Health",5:"Baby",6:"Seasonal",7:"Picnic",8:"Desserts",9:"Organic",10:"Pet",11:"Drinks",12:"Soup",13:"Rice",14:"Canned",15:"Cereal",16:"Bread"};
-  const PROD_CX=RIGHT-66, PROD_CY=BOTTOM+20;
-  const DELI_CX=DELI_X+10, DELI_CY=MID;
-  // Clean orthogonal route — straight up/down aisles, no mid-zigzag
-  const pts=[[ax(16)+4, BOTTOM+20]]; // start at entrance
-  numRoute.forEach((n,idx)=>{
-    const x=ax(n);
-    if(idx%2===0){pts.push([x,BOTTOM]);pts.push([x,TOP]);}  // go up
-    else{pts.push([x,TOP]);pts.push([x,BOTTOM]);}            // go down
+  const PROD_CX=RIGHT-66,PROD_CY=BOTTOM+20;
+  const DELI_CX=DELI_X+10,DELI_CY=MID;
+  const CHECKOUT_X=LEFT+30,CHECKOUT_Y=BOTTOM+16;
+  const ENTRANCE_X=ax(16)+4,ENTRANCE_Y=BOTTOM+20;
+  const DAIRY_CX=(LEFT+RIGHT)/2;
+  const badgeY=MID-18;
+  const checkedSet=new Set(items.filter(i=>i.checked).map(i=>i.aisle));
+  const LABELS={1:"Wine",2:"Hardware",3:"Cleaning",4:"Health",5:"Baby",6:"Seasonal",7:"Picnic",8:"Desserts",9:"Organic",10:"Pet",11:"Drinks",12:"Soup",13:"Rice",14:"Canned",15:"Cereal",16:"Bread"};
+  const curIdx=allStops.indexOf(currentAisle);
+
+  // Build full route: entrance → every stop in order → checkout
+  const pts=[[ENTRANCE_X,ENTRANCE_Y]];
+  let cy=ENTRANCE_Y,cx=ENTRANCE_X;
+  allStops.forEach(aisle=>{
+    if(!isNaN(Number(aisle))){
+      const n=Number(aisle),x=ax(n);
+      if(cy>=BOTTOM-2){pts.push([x,BOTTOM]);pts.push([x,TOP]);cy=TOP;cx=x;}
+      else if(cy<=TOP+2){pts.push([x,TOP]);pts.push([x,BOTTOM]);cy=BOTTOM;cx=x;}
+      else{pts.push([cx,BOTTOM]);pts.push([x,BOTTOM]);pts.push([x,TOP]);cy=TOP;cx=x;}
+    } else if(aisle==="DAIRY"){
+      if(cy>=BOTTOM-2){pts.push([cx,TOP]);cy=TOP;}
+      pts.push([DAIRY_CX,TOP]);pts.push([DAIRY_CX,DAIRY_Y]);
+      cy=DAIRY_Y;cx=DAIRY_CX;
+    } else if(aisle==="PROD"){
+      if(cy<BOTTOM-10){pts.push([cx,BOTTOM]);cy=BOTTOM;}
+      pts.push([PROD_CX,BOTTOM]);pts.push([PROD_CX,PROD_CY]);
+      cy=PROD_CY;cx=PROD_CX;
+    } else if(aisle==="DELI"){
+      if(cy<BOTTOM-10){pts.push([cx,BOTTOM]);cy=BOTTOM;}
+      pts.push([DELI_CX,BOTTOM]);pts.push([DELI_CX,DELI_CY]);
+      cy=DELI_CY;cx=DELI_CX;
+    }
   });
-  // Extend to PRODUCE — along front corridor then dip into produce box
-  if(remaining.includes("PROD")){
-    const p=pts[pts.length-1];
-    if(p[1]!==BOTTOM) pts.push([p[0],BOTTOM]); // reach front corridor
-    pts.push([PROD_CX,BOTTOM]);
-    pts.push([PROD_CX,PROD_CY]);
+  // Connect to checkout
+  if(cy<BOTTOM-10) pts.push([cx,BOTTOM]);
+  pts.push([CHECKOUT_X,BOTTOM]);pts.push([CHECKOUT_X,CHECKOUT_Y]);
+
+  // Split route at current stop for done/upcoming styling
+  // Find the waypoint index where the current stop's first segment starts
+  let splitPtIdx=pts.length; // default: all done
+  if(curIdx>=0){
+    // Walk allStops up to curIdx to find how many waypoints were added
+    const countPts=[[ENTRANCE_X,ENTRANCE_Y]];
+    let cy2=ENTRANCE_Y,cx2=ENTRANCE_X;
+    for(let si=0;si<curIdx;si++){
+      const a=allStops[si];
+      if(!isNaN(Number(a))){
+        const n=Number(a),x=ax(n);
+        if(cy2>=BOTTOM-2){countPts.push([x,BOTTOM]);countPts.push([x,TOP]);cy2=TOP;cx2=x;}
+        else if(cy2<=TOP+2){countPts.push([x,TOP]);countPts.push([x,BOTTOM]);cy2=BOTTOM;cx2=x;}
+        else{countPts.push([cx2,BOTTOM]);countPts.push([x,BOTTOM]);countPts.push([x,TOP]);cy2=TOP;cx2=x;}
+      } else if(a==="DAIRY"){
+        if(cy2>=BOTTOM-2){countPts.push([cx2,TOP]);cy2=TOP;}
+        countPts.push([DAIRY_CX,TOP]);countPts.push([DAIRY_CX,DAIRY_Y]);cy2=DAIRY_Y;cx2=DAIRY_CX;
+      } else if(a==="PROD"){
+        if(cy2<BOTTOM-10){countPts.push([cx2,BOTTOM]);cy2=BOTTOM;}
+        countPts.push([PROD_CX,BOTTOM]);countPts.push([PROD_CX,PROD_CY]);cy2=PROD_CY;cx2=PROD_CX;
+      } else if(a==="DELI"){
+        if(cy2<BOTTOM-10){countPts.push([cx2,BOTTOM]);cy2=BOTTOM;}
+        countPts.push([DELI_CX,BOTTOM]);countPts.push([DELI_CX,DELI_CY]);cy2=DELI_CY;cx2=DELI_CX;
+      }
+    }
+    splitPtIdx=countPts.length-1;
   }
-  // Extend to DELI — front corridor → right wall → up to deli (fully orthogonal)
-  if(remaining.includes("DELI")){
-    const p=pts[pts.length-1];
-    if(p[1]!==BOTTOM) pts.push([p[0],BOTTOM]); // reach front corridor
-    pts.push([DELI_CX,BOTTOM]);                 // along bottom to right wall
-    pts.push([DELI_CX,DELI_CY]);               // up right wall to deli height
-  }
-  const pd=pts.map((p,i)=>`${i===0?"M":"L"}${p[0].toFixed(1)},${p[1].toFixed(1)}`).join(" ");
-  const hasRoute=remaining.length>0;
+  const donePts=pts.slice(0,splitPtIdx+1);
+  const upcomingPts=[pts[splitPtIdx],...pts.slice(splitPtIdx+1)];
+  const mkPath=arr=>arr.map((p,i)=>`${i===0?"M":"L"}${p[0].toFixed(1)},${p[1].toFixed(1)}`).join(" ");
+  const donePd=donePts.length>1?mkPath(donePts):"";
+  const upcomingPd=upcomingPts.length>1?mkPath(upcomingPts):"";
+
   return (
     <svg viewBox="0 0 316 210" width="100%" style={{display:"block"}}>
       <rect x={0} y={0} width={316} height={210} fill="#0d1117"/>
       {/* Dairy back wall */}
       <rect x={LEFT-4} y={DAIRY_Y-8} width={DELI_X-LEFT+8} height={20} fill={currentAisle==="DAIRY"?"#0d2f50":"#0d1f35"} stroke={currentAisle==="DAIRY"?"#4ade80":"#1e3a5f"} strokeWidth={currentAisle==="DAIRY"?2:1} rx={3}/>
-      <text x={(LEFT+DELI_X)/2} y={DAIRY_Y+5} fill={currentAisle==="DAIRY"?"#4ade80":"#bfdbfe"} fontSize={6} textAnchor="middle" fontWeight="700">🥛 DAIRY · EGGS · BUTTER · OJ · YOGURT · MILK · CREAMER{currentAisle==="DAIRY"?" ← HERE":""}</text>
+      <text x={(LEFT+DELI_X)/2} y={DAIRY_Y+5} fill={currentAisle==="DAIRY"?"#4ade80":"#bfdbfe"} fontSize={6} textAnchor="middle" fontWeight="700">🥛 DAIRY · EGGS · BUTTER · OJ · YOGURT · MILK{currentAisle==="DAIRY"?" ← HERE":""}</text>
       {/* Deli right wall */}
       <rect x={DELI_X} y={DAIRY_Y-8} width={20} height={BOTTOM-DAIRY_Y+44} fill={currentAisle==="DELI"?"#2a0d0d":"#1f0d0d"} stroke={currentAisle==="DELI"?"#4ade80":"#5f1e1e"} strokeWidth={currentAisle==="DELI"?2:1} rx={3}/>
       <text x={DELI_X+10} y={DAIRY_Y+8} fill={currentAisle==="DELI"?"#4ade80":"#fca5a5"} fontSize={5.5} textAnchor="middle" fontWeight="700">DELI{currentAisle==="DELI"?" ←":""}</text>
       {["Fried","Chkn","Sand","Sushi","Cakes","Donuts"].map((t,i)=><text key={t} x={DELI_X+10} y={DAIRY_Y+20+i*13} fill={currentAisle==="DELI"?"#4ade80":"#fca5a5"} fontSize={5} textAnchor="middle">{t}</text>)}
-      {/* Corridors: back (top), mid (centre), front (bottom) */}
+      {/* Corridors */}
       <line x1={LEFT} y1={TOP} x2={RIGHT} y2={TOP} stroke="#1e2a3a" strokeWidth={6} strokeLinecap="round"/>
       <line x1={LEFT} y1={MID} x2={RIGHT} y2={MID} stroke="#1e2a3a" strokeWidth={5} strokeLinecap="round"/>
-      <text x={LEFT-2} y={MID+10} fill="#2d3748" fontSize={5} textAnchor="middle" transform={`rotate(-90,${LEFT-2},${MID+10})`}>MID</text>
       <line x1={LEFT} y1={BOTTOM} x2={RIGHT} y2={BOTTOM} stroke="#1e2a3a" strokeWidth={6} strokeLinecap="round"/>
-      {/* Route line */}
-      {hasRoute&&<path d={pd} stroke="#4ade80" strokeWidth={1.5} strokeDasharray="4,2" fill="none" strokeLinecap="round" strokeLinejoin="round" opacity={0.75}/>}
-      {/* Aisle lines — split at mid corridor */}
+      {/* Full route — done portion dim, upcoming portion bright */}
+      {donePd&&<path d={donePd} stroke="#1e3a1e" strokeWidth={2} fill="none" strokeLinecap="round" strokeLinejoin="round"/>}
+      {upcomingPd&&<path d={upcomingPd} stroke="#4ade80" strokeWidth={1.5} strokeDasharray="4,2" fill="none" strokeLinecap="round" strokeLinejoin="round" opacity={0.8}/>}
+      {/* Aisle lines */}
       {[...Array(16)].map((_,i)=>{
         const n=i+1,x=ax(n);
-        const isCur=String(n)===currentAisle,has=activeSet.has(String(n)),done=doneSet.has(String(n))&&!has;
-        const col=isCur?"#4ade80":has?"#2d5a3d":done?"#1a3a1a":"#1a1f2e";
-        const lw=isCur?4:has?3:2;
-        const routeIdx=numRoute.indexOf(n);
-        const goUp=routeIdx%2===0;
-        const s=3;
-        const arrowY=MID+18;
-        const arrowPts=goUp?`${x},${arrowY-s} ${x-s},${arrowY+s} ${x+s},${arrowY+s}`:`${x},${arrowY+s} ${x-s},${arrowY-s} ${x+s},${arrowY-s}`;
+        const isStop=allStops.includes(String(n));
+        const isCur=String(n)===currentAisle;
+        const isDone=checkedSet.has(String(n));
+        const col=isCur?"#4ade80":isDone?"#163016":isStop?"#1e3a2a":"#1a1f2e";
+        const lw=isCur?3.5:isStop?2:1.5;
         return (<g key={n}>
-          {/* upper half */}
           <line x1={x} y1={TOP} x2={x} y2={MID-GAP} stroke={col} strokeWidth={lw}/>
-          {/* lower half */}
           <line x1={x} y1={MID+GAP} x2={x} y2={BOTTOM} stroke={col} strokeWidth={lw}/>
-          <text x={x} y={TOP-4} fill={isCur?"#4ade80":has?"#2d6a3d":"#2d3748"} fontSize={6} textAnchor="middle" fontWeight="700">{n}</text>
-          <text x={x+2} y={(TOP+MID)/2+2} fill={isCur?"#4ade8077":has?"#1e4a2e":"#161b24"} fontSize={5} textAnchor="middle" fontWeight={has?"700":"normal"} transform={`rotate(-90,${x+2},${(TOP+MID)/2+2})`}>{LABELS[n]}</text>
-          {routeIdx>=0&&<polygon points={arrowPts} fill="#4ade80" opacity="0.65"/>}
+          <text x={x} y={TOP-4} fill={isCur?"#4ade80":isStop?"#2d5a3d":"#252d3a"} fontSize={5.5} textAnchor="middle" fontWeight="700">{n}</text>
+          <text x={x+2} y={(TOP+MID)/2+2} fill={isCur?"#4ade8055":isDone?"#1e3a1e":isStop?"#1e4a2e":"#161b24"} fontSize={4.5} textAnchor="middle" fontWeight={isStop?"700":"400"} transform={`rotate(-90,${x+2},${(TOP+MID)/2+2})`}>{LABELS[n]}</text>
         </g>);
       })}
-      {/* Stop badges — above the mid corridor */}
-      {numRoute.map((n,i)=>{
-        const x=ax(n),isCur=String(n)===currentAisle;
-        return(<g key={n}>
-          <circle cx={x} cy={badgeY} r={isCur?7:5} fill={isCur?"#4ade80":"#0a1f12"} stroke="#4ade80" strokeWidth={1}/>
-          <text x={x} y={badgeY+2} fill={isCur?"#000":"#4ade80"} fontSize={5} textAnchor="middle" fontWeight="900">{i+1}</text>
+      {/* Numbered stop badges — show ALL stops with done/current/upcoming states */}
+      {allStops.filter(a=>!isNaN(Number(a))).map((aisle,i)=>{
+        const n=Number(aisle),x=ax(n);
+        const isCur=aisle===currentAisle;
+        const isDone=checkedSet.has(aisle)&&!isCur;
+        const r=isCur?7.5:5.5;
+        return(<g key={aisle}>
+          <circle cx={x} cy={badgeY} r={r} fill={isCur?"#4ade80":isDone?"#0d200d":"#071209"} stroke={isDone?"#2d5a2d":"#4ade80"} strokeWidth={isCur?2:1}/>
+          <text x={x} y={badgeY+2.5} fill={isCur?"#000":isDone?"#4a7a4a":"#4ade80"} fontSize={isCur?6.5:5} textAnchor="middle" fontWeight="900">{isDone?"✓":(i+1)}</text>
+          {isCur&&<text x={x} y={badgeY-11} fill="#4ade80" fontSize={5} fontWeight="700" textAnchor="middle">▼ HERE</text>}
         </g>);
       })}
-      {currentAisle&&!isNaN(Number(currentAisle))&&<text x={ax(Number(currentAisle))} y={badgeY-10} fill="#4ade80" fontSize={5} fontWeight="700" textAnchor="middle">▼ HERE</text>}
-      {/* PROD stop badge */}
-      {remaining.includes("PROD")&&<g>
-        <circle cx={PROD_CX} cy={PROD_CY-14} r={currentAisle==="PROD"?7:5} fill={currentAisle==="PROD"?"#4ade80":"#0a1f12"} stroke="#4ade80" strokeWidth={1}/>
-        <text x={PROD_CX} y={PROD_CY-12} fill={currentAisle==="PROD"?"#000":"#4ade80"} fontSize={5} textAnchor="middle" fontWeight="900">🥦</text>
-      </g>}
-      {/* DELI stop badge */}
-      {remaining.includes("DELI")&&<g>
-        <circle cx={DELI_CX+12} cy={DELI_CY} r={currentAisle==="DELI"?7:5} fill={currentAisle==="DELI"?"#4ade80":"#0a1f12"} stroke="#4ade80" strokeWidth={1}/>
-        <text x={DELI_CX+12} y={DELI_CY+2} fill={currentAisle==="DELI"?"#000":"#4ade80"} fontSize={5} textAnchor="middle" fontWeight="900">🥩</text>
-      </g>}
+      {/* DAIRY badge */}
+      {allStops.includes("DAIRY")&&(()=>{
+        const isCur=currentAisle==="DAIRY",isDone=checkedSet.has("DAIRY")&&!isCur;
+        const sn=allStops.indexOf("DAIRY")+1,bx=DAIRY_CX+60,by=DAIRY_Y;
+        return(<g>
+          <circle cx={bx} cy={by} r={isCur?7.5:5.5} fill={isCur?"#4ade80":isDone?"#0d200d":"#071209"} stroke={isDone?"#2d5a2d":"#4ade80"} strokeWidth={isCur?2:1}/>
+          <text x={bx} y={by+2.5} fill={isCur?"#000":isDone?"#4a7a4a":"#4ade80"} fontSize={isCur?6.5:5} textAnchor="middle" fontWeight="900">{isDone?"✓":sn}</text>
+          {isCur&&<text x={(LEFT+DELI_X)/2} y={DAIRY_Y-10} fill="#4ade80" fontSize={5} fontWeight="700" textAnchor="middle">▼ HERE</text>}
+        </g>);
+      })()}
+      {/* PROD badge */}
+      {allStops.includes("PROD")&&(()=>{
+        const isCur=currentAisle==="PROD",isDone=checkedSet.has("PROD")&&!isCur;
+        const sn=allStops.indexOf("PROD")+1;
+        return(<g>
+          <circle cx={PROD_CX} cy={PROD_CY-15} r={isCur?7.5:5.5} fill={isCur?"#4ade80":isDone?"#0d200d":"#071209"} stroke={isDone?"#2d5a2d":"#4ade80"} strokeWidth={isCur?2:1}/>
+          <text x={PROD_CX} y={PROD_CY-12.5} fill={isCur?"#000":isDone?"#4a7a4a":"#4ade80"} fontSize={isCur?6.5:5} textAnchor="middle" fontWeight="900">{isDone?"✓":sn}</text>
+        </g>);
+      })()}
+      {/* DELI badge */}
+      {allStops.includes("DELI")&&(()=>{
+        const isCur=currentAisle==="DELI",isDone=checkedSet.has("DELI")&&!isCur;
+        const sn=allStops.indexOf("DELI")+1;
+        return(<g>
+          <circle cx={DELI_CX+10} cy={DELI_CY} r={isCur?7.5:5.5} fill={isCur?"#4ade80":isDone?"#0d200d":"#071209"} stroke={isDone?"#2d5a2d":"#4ade80"} strokeWidth={isCur?2:1}/>
+          <text x={DELI_CX+10} y={DELI_CY+2.5} fill={isCur?"#000":isDone?"#4a7a4a":"#4ade80"} fontSize={isCur?6.5:5} textAnchor="middle" fontWeight="900">{isDone?"✓":sn}</text>
+        </g>);
+      })()}
       {/* Floor sections */}
-      <rect x={LEFT-4} y={BOTTOM+8} width={68} height={24} fill="#1a1207" stroke="#5f3a0d" rx={3}/>
-      <text x={LEFT+30} y={BOTTOM+17} fill="#fcd34d" fontSize={6} textAnchor="middle" fontWeight="700">🛒 CHECKOUT</text>
-      <text x={LEFT+30} y={BOTTOM+27} fill="#4a5568" fontSize={5} textAnchor="middle">← finish here</text>
+      <rect x={LEFT-4} y={BOTTOM+8} width={68} height={24} fill={currentAisle==="CHECKOUT"?"#2a1f07":"#1a1207"} stroke="#5f3a0d" rx={3}/>
+      <text x={CHECKOUT_X} y={BOTTOM+17} fill="#fcd34d" fontSize={6} textAnchor="middle" fontWeight="700">🛒 CHECKOUT</text>
+      <text x={CHECKOUT_X} y={BOTTOM+27} fill="#4a5568" fontSize={5} textAnchor="middle">← finish</text>
       <rect x={RIGHT-108} y={BOTTOM+8} width={84} height={24} fill={currentAisle==="PROD"?"#0d2f1a":"#0d1f12"} stroke={currentAisle==="PROD"?"#4ade80":"#1e5f2a"} strokeWidth={currentAisle==="PROD"?2:1} rx={3}/>
-      <text x={RIGHT-66} y={BOTTOM+17} fill={currentAisle==="PROD"?"#4ade80":"#86efac"} fontSize={6} textAnchor="middle" fontWeight="700">🥦 PRODUCE{currentAisle==="PROD"?" ← HERE":""}</text>
-      <text x={RIGHT-66} y={BOTTOM+27} fill="#2d6a3d" fontSize={5} textAnchor="middle">Fresh Fruit &amp; Veg</text>
+      <text x={PROD_CX} y={BOTTOM+17} fill={currentAisle==="PROD"?"#4ade80":"#86efac"} fontSize={6} textAnchor="middle" fontWeight="700">🥦 PRODUCE{currentAisle==="PROD"?" ← HERE":""}</text>
+      <text x={PROD_CX} y={BOTTOM+27} fill="#2d6a3d" fontSize={5} textAnchor="middle">Fresh Fruit &amp; Veg</text>
       <rect x={RIGHT-22} y={BOTTOM+8} width={DELI_X-RIGHT+26} height={24} fill="#0d0d1f" stroke="#1e1e5f" rx={3}/>
       <text x={RIGHT+10} y={BOTTOM+17} fill="#a5b4fc" fontSize={6} textAnchor="middle" fontWeight="700">🚪 ENTER</text>
       <text x={RIGHT+10} y={BOTTOM+27} fill="#4a5568" fontSize={5} textAnchor="middle">start →</text>
@@ -531,7 +585,7 @@ function NavigateScreen({ items, setItems, setScreen, setHistory, storeName }) {
       </div>
       <div style={{padding:"12px 16px",borderBottom:`1px solid ${S.border}`}}>
         <div style={{fontSize:8,letterSpacing:3,color:S.muted,marginBottom:6}}>STORE MAP</div>
-        <StoreMap currentAisle={currentAisle} remaining={remaining} items={items}/>
+        <StoreMap currentAisle={currentAisle} allStops={allStops} items={items}/>
       </div>
       {allDone?(
         <div style={{margin:"16px 20px",background:"linear-gradient(135deg,#0d2a0d,#0a1f0a)",border:"1px solid #2d5a2d",borderRadius:12,padding:"20px",textAlign:"center"}}>
