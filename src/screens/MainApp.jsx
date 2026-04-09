@@ -405,6 +405,9 @@ function StoreMap({ currentAisle, allStops, items }) {
   const CHECKOUT_X=LEFT+30,CHECKOUT_Y=BOTTOM+16;
   const ENTRANCE_X=ax(16)+4,ENTRANCE_Y=BOTTOM+20;
   const DAIRY_CX=(LEFT+RIGHT)/2;
+  // Route lines must stay in walkable areas — stop at wall edges, not inside walls
+  const DELI_ROUTE_X=DELI_X-2;          // left edge of DELI wall — customers walk here
+  const DAIRY_ROUTE_Y=DAIRY_Y+12;       // bottom edge of DAIRY rect — where aisle meets back wall
   const badgeY=MID-18;
   const checkedSet=new Set(items.filter(i=>i.checked).map(i=>i.aisle));
   const LABELS={1:"Wine",2:"Hardware",3:"Cleaning",4:"Health",5:"Baby",6:"Seasonal",7:"Picnic",8:"Desserts",9:"Organic",10:"Pet",11:"Drinks",12:"Soup",13:"Rice",14:"Canned",15:"Cereal",16:"Bread"};
@@ -439,12 +442,13 @@ function StoreMap({ currentAisle, allStops, items }) {
       // Get to TOP corridor first (from any starting level)
       if(cy>=BOTTOM-2){pts.push([cx,TOP]);cy=TOP;}
       else if(cy>TOP+2&&cy<BOTTOM-2){pts.push([cx,TOP]);cy=TOP;} // from MID
-      // Slide along TOP to DAIRY centre, then step up to the back wall
-      if(cy>DAIRY_Y+2) pts.push([DAIRY_CX,TOP]);
-      pts.push([DAIRY_CX,DAIRY_Y]);cy=DAIRY_Y;cx=DAIRY_CX;
+      // Slide along TOP corridor to DAIRY centre, then touch the bottom edge of the back wall
+      // (DAIRY_ROUTE_Y = bottom edge of DAIRY rect — route stays in the walkable gap)
+      pts.push([DAIRY_CX,TOP]);
+      pts.push([DAIRY_CX,DAIRY_ROUTE_Y]);cy=DAIRY_ROUTE_Y;cx=DAIRY_CX;
     } else if(aisle==="PROD"){
       // Get to BOTTOM corridor
-      if(cy<TOP-2){pts.push([cx,TOP]);cy=TOP;}           // from DAIRY_Y → TOP
+      if(cy<TOP-2){pts.push([cx,TOP]);cy=TOP;}           // from DAIRY_ROUTE_Y → TOP
       if(cy<=TOP+2||(cy>TOP+2&&cy<BOTTOM-2)){pts.push([cx,BOTTOM]);cy=BOTTOM;} // TOP/MID → BOTTOM
       // Slide to PROD column, drop into produce area
       pts.push([PROD_CX,BOTTOM]);pts.push([PROD_CX,PROD_CY]);cy=PROD_CY;cx=PROD_CX;
@@ -452,8 +456,8 @@ function StoreMap({ currentAisle, allStops, items }) {
       // Get to BOTTOM corridor
       if(cy<TOP-2){pts.push([cx,TOP]);cy=TOP;}
       if(cy<=TOP+2||(cy>TOP+2&&cy<BOTTOM-2)){pts.push([cx,BOTTOM]);cy=BOTTOM;}
-      // Slide right to DELI column, rise to DELI height (MID)
-      pts.push([DELI_CX,BOTTOM]);pts.push([DELI_CX,DELI_CY]);cy=DELI_CY;cx=DELI_CX;
+      // Slide right to DELI_ROUTE_X (left edge of DELI wall — walkable), rise to DELI height (MID)
+      pts.push([DELI_ROUTE_X,BOTTOM]);pts.push([DELI_ROUTE_X,DELI_CY]);cy=DELI_CY;cx=DELI_ROUTE_X;
     }
     stopEndIdxs.push(pts.length-1);
   });
@@ -480,10 +484,10 @@ function StoreMap({ currentAisle, allStops, items }) {
       <rect x={DELI_X} y={DAIRY_Y-8} width={20} height={BOTTOM-DAIRY_Y+44} fill={currentAisle==="DELI"?"#2a0d0d":"#1f0d0d"} stroke={currentAisle==="DELI"?"#4ade80":"#5f1e1e"} strokeWidth={currentAisle==="DELI"?2:1} rx={3}/>
       <text x={DELI_X+10} y={DAIRY_Y+8} fill={currentAisle==="DELI"?"#4ade80":"#fca5a5"} fontSize={5.5} textAnchor="middle" fontWeight="700">DELI{currentAisle==="DELI"?" ←":""}</text>
       {["Fried","Chkn","Sand","Sushi","Cakes","Donuts"].map((t,i)=><text key={t} x={DELI_X+10} y={DAIRY_Y+20+i*13} fill={currentAisle==="DELI"?"#4ade80":"#fca5a5"} fontSize={5} textAnchor="middle">{t}</text>)}
-      {/* Corridors */}
+      {/* Corridors — extended to DELI_ROUTE_X so the walkway to DELI is shown */}
       <line x1={LEFT} y1={TOP} x2={RIGHT} y2={TOP} stroke="#1e2a3a" strokeWidth={6} strokeLinecap="round"/>
-      <line x1={LEFT} y1={MID} x2={RIGHT} y2={MID} stroke="#1e2a3a" strokeWidth={5} strokeLinecap="round"/>
-      <line x1={LEFT} y1={BOTTOM} x2={RIGHT} y2={BOTTOM} stroke="#1e2a3a" strokeWidth={6} strokeLinecap="round"/>
+      <line x1={LEFT} y1={MID} x2={DELI_ROUTE_X} y2={MID} stroke="#1e2a3a" strokeWidth={5} strokeLinecap="round"/>
+      <line x1={LEFT} y1={BOTTOM} x2={DELI_ROUTE_X} y2={BOTTOM} stroke="#1e2a3a" strokeWidth={6} strokeLinecap="round"/>
       {/* Full route — done portion dim, upcoming portion bright */}
       {donePd&&<path d={donePd} stroke="#1e3a1e" strokeWidth={2} fill="none" strokeLinecap="round" strokeLinejoin="round"/>}
       {upcomingPd&&<path d={upcomingPd} stroke="#4ade80" strokeWidth={1.5} strokeDasharray="4,2" fill="none" strokeLinecap="round" strokeLinejoin="round" opacity={0.8}/>}
