@@ -474,88 +474,98 @@ function StoreMap({ currentAisle, allStops, items }) {
   const donePd=splitIdx>0?mkPath(pts.slice(0,splitIdx+1)):"";
   const upcomingPd=mkPath(pts.slice(splitIdx));
 
+  // Badge position for each stop — sits ON the route line
+  const badgePos=aisle=>{
+    if(!isNaN(Number(aisle))) return [ax(Number(aisle)),badgeY];
+    if(aisle==="DELI")   return [DELI_ROUTE_X, DELI_CY];
+    if(aisle==="DAIRY")  return [DAIRY_CX, DAIRY_ROUTE_Y];
+    if(aisle==="PROD")   return [PROD_CX, PROD_CY];
+    return null;
+  };
+
   return (
     <svg viewBox="0 0 316 210" width="100%" style={{display:"block"}}>
-      <rect x={0} y={0} width={316} height={210} fill="#0d1117"/>
-      {/* Dairy back wall */}
-      <rect x={LEFT-4} y={DAIRY_Y-8} width={DELI_X-LEFT+8} height={20} fill={currentAisle==="DAIRY"?"#0d2f50":"#0d1f35"} stroke={currentAisle==="DAIRY"?"#4ade80":"#1e3a5f"} strokeWidth={currentAisle==="DAIRY"?2:1} rx={3}/>
-      <text x={(LEFT+DELI_X)/2} y={DAIRY_Y+5} fill={currentAisle==="DAIRY"?"#4ade80":"#bfdbfe"} fontSize={6} textAnchor="middle" fontWeight="700">🥛 DAIRY · EGGS · BUTTER · OJ · YOGURT · MILK{currentAisle==="DAIRY"?" ← HERE":""}</text>
-      {/* Deli right wall */}
-      <rect x={DELI_X} y={DAIRY_Y-8} width={20} height={BOTTOM-DAIRY_Y+44} fill={currentAisle==="DELI"?"#2a0d0d":"#1f0d0d"} stroke={currentAisle==="DELI"?"#4ade80":"#5f1e1e"} strokeWidth={currentAisle==="DELI"?2:1} rx={3}/>
-      <text x={DELI_X+10} y={DAIRY_Y+8} fill={currentAisle==="DELI"?"#4ade80":"#fca5a5"} fontSize={5.5} textAnchor="middle" fontWeight="700">DELI{currentAisle==="DELI"?" ←":""}</text>
-      {["Fried","Chkn","Sand","Sushi","Cakes","Donuts"].map((t,i)=><text key={t} x={DELI_X+10} y={DAIRY_Y+20+i*13} fill={currentAisle==="DELI"?"#4ade80":"#fca5a5"} fontSize={5} textAnchor="middle">{t}</text>)}
-      {/* Corridors — extended to DELI_ROUTE_X so the walkway to DELI is shown */}
-      <line x1={LEFT} y1={TOP} x2={RIGHT} y2={TOP} stroke="#1e2a3a" strokeWidth={6} strokeLinecap="round"/>
-      <line x1={LEFT} y1={MID} x2={DELI_ROUTE_X} y2={MID} stroke="#1e2a3a" strokeWidth={5} strokeLinecap="round"/>
-      <line x1={LEFT} y1={BOTTOM} x2={DELI_ROUTE_X} y2={BOTTOM} stroke="#1e2a3a" strokeWidth={6} strokeLinecap="round"/>
-      {/* Full route — done portion dim, upcoming portion bright */}
-      {donePd&&<path d={donePd} stroke="#1e3a1e" strokeWidth={2} fill="none" strokeLinecap="round" strokeLinejoin="round"/>}
-      {upcomingPd&&<path d={upcomingPd} stroke="#4ade80" strokeWidth={1.5} strokeDasharray="4,2" fill="none" strokeLinecap="round" strokeLinejoin="round" opacity={0.8}/>}
-      {/* Aisle lines */}
-      {[...Array(16)].map((_,i)=>{
-        const n=i+1,x=ax(n);
-        const isStop=allStops.includes(String(n));
-        const isCur=String(n)===currentAisle;
-        const isDone=checkedSet.has(String(n));
-        const col=isCur?"#4ade80":isDone?"#163016":isStop?"#1e3a2a":"#1a1f2e";
-        const lw=isCur?3.5:isStop?2:1.5;
-        return (<g key={n}>
-          <line x1={x} y1={TOP} x2={x} y2={MID-GAP} stroke={col} strokeWidth={lw}/>
-          <line x1={x} y1={MID+GAP} x2={x} y2={BOTTOM} stroke={col} strokeWidth={lw}/>
-          <text x={x} y={TOP-4} fill={isCur?"#4ade80":isStop?"#2d5a3d":"#252d3a"} fontSize={5.5} textAnchor="middle" fontWeight="700">{n}</text>
-          <text x={x+2} y={(TOP+MID)/2+2} fill={isCur?"#4ade8055":isDone?"#1e3a1e":isStop?"#1e4a2e":"#161b24"} fontSize={4.5} textAnchor="middle" fontWeight={isStop?"700":"400"} transform={`rotate(-90,${x+2},${(TOP+MID)/2+2})`}>{LABELS[n]}</text>
-        </g>);
-      })}
-      {/* Numbered stop badges — show ALL stops with done/current/upcoming states */}
-      {allStops.filter(a=>!isNaN(Number(a))).map((aisle,i)=>{
+      <rect x={0} y={0} width={316} height={210} fill="#080c10"/>
+
+      {/* ── Zone walls ───────────────────────────────────────────────── */}
+      {/* DAIRY back wall */}
+      <rect x={LEFT-4} y={DAIRY_Y-8} width={DELI_X-LEFT+8} height={20}
+        fill={currentAisle==="DAIRY"?"#0d2f50":"#0b1a2e"}
+        stroke={currentAisle==="DAIRY"?"#4ade80":"#162840"} strokeWidth={currentAisle==="DAIRY"?2:1} rx={2}/>
+      <text x={(LEFT+RIGHT)/2} y={DAIRY_Y+5} fill={currentAisle==="DAIRY"?"#4ade80":"#4a7aaa"}
+        fontSize={6} textAnchor="middle" fontWeight="700">
+        🥛 DAIRY · EGGS · BUTTER · YOGURT · MILK · OJ{currentAisle==="DAIRY"?"  ◀ YOU ARE HERE":""}
+      </text>
+      {/* DELI right wall */}
+      <rect x={DELI_X} y={DAIRY_Y-8} width={22} height={BOTTOM-DAIRY_Y+50}
+        fill={currentAisle==="DELI"?"#2a0d0d":"#140808"}
+        stroke={currentAisle==="DELI"?"#4ade80":"#2d1010"} strokeWidth={currentAisle==="DELI"?2:1} rx={2}/>
+      <text x={DELI_X+11} y={MID-14} fill={currentAisle==="DELI"?"#4ade80":"#884444"}
+        fontSize={5} textAnchor="middle" fontWeight="700">DELI</text>
+      {["Hot","Sushi","Cake","Dnuts"].map((t,i)=>(
+        <text key={t} x={DELI_X+11} y={MID-2+i*11}
+          fill={currentAisle==="DELI"?"#4ade80":"#663333"} fontSize={4} textAnchor="middle">{t}</text>
+      ))}
+
+      {/* ── Walkable corridor bands (subtle) ─────────────────────────── */}
+      <rect x={LEFT-2} y={TOP-4}    width={RIGHT-LEFT+4}      height={8} fill="#0e1a26" rx={2}/>
+      <rect x={LEFT-2} y={MID-3}    width={DELI_ROUTE_X-LEFT+4} height={6} fill="#0c1820" rx={2}/>
+      <rect x={LEFT-2} y={BOTTOM-4} width={DELI_ROUTE_X-LEFT+4} height={8} fill="#0e1a26" rx={2}/>
+
+      {/* ── Aisle columns — ONLY for stops, no clutter ───────────────── */}
+      {allStops.filter(a=>!isNaN(Number(a))).map(aisle=>{
         const n=Number(aisle),x=ax(n);
-        const isCur=aisle===currentAisle;
-        const isDone=checkedSet.has(aisle)&&!isCur;
-        const r=isCur?7.5:5.5;
+        const isCur=aisle===currentAisle,isDone=checkedSet.has(aisle)&&!isCur;
         return(<g key={aisle}>
-          <circle cx={x} cy={badgeY} r={r} fill={isCur?"#4ade80":isDone?"#0d200d":"#071209"} stroke={isDone?"#2d5a2d":"#4ade80"} strokeWidth={isCur?2:1}/>
-          <text x={x} y={badgeY+2.5} fill={isCur?"#000":isDone?"#4a7a4a":"#4ade80"} fontSize={isCur?6.5:5} textAnchor="middle" fontWeight="900">{isDone?"✓":(i+1)}</text>
-          {isCur&&<text x={x} y={badgeY-11} fill="#4ade80" fontSize={5} fontWeight="700" textAnchor="middle">▼ HERE</text>}
+          <line x1={x} y1={TOP} x2={x} y2={BOTTOM}
+            stroke={isCur?"#2a5a38":isDone?"#142814":"#1a3824"} strokeWidth={2.5}/>
+          <text x={x} y={TOP-5} fill={isCur?"#4ade80":isDone?"#2d5a2d":"#336644"}
+            fontSize={6} textAnchor="middle" fontWeight="700">{n}</text>
         </g>);
       })}
-      {/* DAIRY badge */}
-      {allStops.includes("DAIRY")&&(()=>{
-        const isCur=currentAisle==="DAIRY",isDone=checkedSet.has("DAIRY")&&!isCur;
-        const sn=allStops.indexOf("DAIRY")+1,bx=DAIRY_CX+60,by=DAIRY_Y;
-        return(<g>
-          <circle cx={bx} cy={by} r={isCur?7.5:5.5} fill={isCur?"#4ade80":isDone?"#0d200d":"#071209"} stroke={isDone?"#2d5a2d":"#4ade80"} strokeWidth={isCur?2:1}/>
-          <text x={bx} y={by+2.5} fill={isCur?"#000":isDone?"#4a7a4a":"#4ade80"} fontSize={isCur?6.5:5} textAnchor="middle" fontWeight="900">{isDone?"✓":sn}</text>
-          {isCur&&<text x={(LEFT+DELI_X)/2} y={DAIRY_Y-10} fill="#4ade80" fontSize={5} fontWeight="700" textAnchor="middle">▼ HERE</text>}
+
+      {/* ── THE ROUTE — one clear line ───────────────────────────────── */}
+      {donePd&&<path d={donePd} stroke="#1a3a1a" strokeWidth={3}
+        fill="none" strokeLinecap="round" strokeLinejoin="round"/>}
+      <path d={upcomingPd} stroke="#4ade80" strokeWidth={3}
+        fill="none" strokeLinecap="round" strokeLinejoin="round"/>
+
+      {/* ── Numbered stop badges ON the route line ───────────────────── */}
+      {allStops.map((aisle,i)=>{
+        const pos=badgePos(aisle); if(!pos) return null;
+        const [bx,by]=pos;
+        const isCur=aisle===currentAisle,isDone=checkedSet.has(aisle)&&!isCur;
+        const r=isCur?9:6.5;
+        return(<g key={aisle}>
+          {/* white knockout so badge sits cleanly on the line */}
+          <circle cx={bx} cy={by} r={r+2} fill="#080c10"/>
+          <circle cx={bx} cy={by} r={r}
+            fill={isCur?"#4ade80":isDone?"#112211":"#08140a"}
+            stroke={isDone?"#2a5a2a":"#4ade80"} strokeWidth={isCur?2.5:1.5}/>
+          <text x={bx} y={by+3.5} fill={isCur?"#000":isDone?"#3a7a3a":"#4ade80"}
+            fontSize={isCur?8:6} textAnchor="middle" fontWeight="900">
+            {isDone?"✓":(i+1)}
+          </text>
+          {isCur&&<text x={bx} y={by-r-5} fill="#4ade80"
+            fontSize={6} fontWeight="700" textAnchor="middle">▼ HERE</text>}
         </g>);
-      })()}
-      {/* PROD badge */}
-      {allStops.includes("PROD")&&(()=>{
-        const isCur=currentAisle==="PROD",isDone=checkedSet.has("PROD")&&!isCur;
-        const sn=allStops.indexOf("PROD")+1;
-        return(<g>
-          <circle cx={PROD_CX} cy={PROD_CY-15} r={isCur?7.5:5.5} fill={isCur?"#4ade80":isDone?"#0d200d":"#071209"} stroke={isDone?"#2d5a2d":"#4ade80"} strokeWidth={isCur?2:1}/>
-          <text x={PROD_CX} y={PROD_CY-12.5} fill={isCur?"#000":isDone?"#4a7a4a":"#4ade80"} fontSize={isCur?6.5:5} textAnchor="middle" fontWeight="900">{isDone?"✓":sn}</text>
-        </g>);
-      })()}
-      {/* DELI badge */}
-      {allStops.includes("DELI")&&(()=>{
-        const isCur=currentAisle==="DELI",isDone=checkedSet.has("DELI")&&!isCur;
-        const sn=allStops.indexOf("DELI")+1;
-        return(<g>
-          <circle cx={DELI_CX+10} cy={DELI_CY} r={isCur?7.5:5.5} fill={isCur?"#4ade80":isDone?"#0d200d":"#071209"} stroke={isDone?"#2d5a2d":"#4ade80"} strokeWidth={isCur?2:1}/>
-          <text x={DELI_CX+10} y={DELI_CY+2.5} fill={isCur?"#000":isDone?"#4a7a4a":"#4ade80"} fontSize={isCur?6.5:5} textAnchor="middle" fontWeight="900">{isDone?"✓":sn}</text>
-        </g>);
-      })()}
-      {/* Floor sections */}
-      <rect x={LEFT-4} y={BOTTOM+8} width={68} height={24} fill={currentAisle==="CHECKOUT"?"#2a1f07":"#1a1207"} stroke="#5f3a0d" rx={3}/>
-      <text x={CHECKOUT_X} y={BOTTOM+17} fill="#fcd34d" fontSize={6} textAnchor="middle" fontWeight="700">🛒 CHECKOUT</text>
-      <text x={CHECKOUT_X} y={BOTTOM+27} fill="#4a5568" fontSize={5} textAnchor="middle">← finish</text>
-      <rect x={RIGHT-108} y={BOTTOM+8} width={84} height={24} fill={currentAisle==="PROD"?"#0d2f1a":"#0d1f12"} stroke={currentAisle==="PROD"?"#4ade80":"#1e5f2a"} strokeWidth={currentAisle==="PROD"?2:1} rx={3}/>
-      <text x={PROD_CX} y={BOTTOM+17} fill={currentAisle==="PROD"?"#4ade80":"#86efac"} fontSize={6} textAnchor="middle" fontWeight="700">🥦 PRODUCE{currentAisle==="PROD"?" ← HERE":""}</text>
-      <text x={PROD_CX} y={BOTTOM+27} fill="#2d6a3d" fontSize={5} textAnchor="middle">Fresh Fruit &amp; Veg</text>
-      <rect x={RIGHT-22} y={BOTTOM+8} width={DELI_X-RIGHT+26} height={24} fill="#0d0d1f" stroke="#1e1e5f" rx={3}/>
-      <text x={RIGHT+10} y={BOTTOM+17} fill="#a5b4fc" fontSize={6} textAnchor="middle" fontWeight="700">🚪 ENTER</text>
-      <text x={RIGHT+10} y={BOTTOM+27} fill="#4a5568" fontSize={5} textAnchor="middle">start →</text>
+      })}
+
+      {/* ── Floor zone labels ─────────────────────────────────────────── */}
+      <rect x={LEFT-4} y={BOTTOM+7} width={66} height={24} fill="#110e04" stroke="#4a2d08" rx={3}/>
+      <text x={CHECKOUT_X} y={BOTTOM+22} fill="#d4a017" fontSize={6.5} textAnchor="middle" fontWeight="700">🛒 CHECKOUT</text>
+
+      <rect x={PROD_CX-46} y={BOTTOM+7} width={92} height={24}
+        fill={currentAisle==="PROD"?"#0a2514":"#081408"}
+        stroke={currentAisle==="PROD"?"#4ade80":"#1a4020"} strokeWidth={currentAisle==="PROD"?2:1} rx={3}/>
+      <text x={PROD_CX} y={BOTTOM+22} fill={currentAisle==="PROD"?"#4ade80":"#3a8a4a"}
+        fontSize={6.5} textAnchor="middle" fontWeight="700">
+        🥦 PRODUCE{currentAisle==="PROD"?"  ◀ YOU":""}
+      </text>
+
+      <rect x={DELI_ROUTE_X+2} y={BOTTOM+7} width={24} height={24} fill="#0a0a18" stroke="#1a1a44" rx={3}/>
+      <text x={DELI_ROUTE_X+14} y={BOTTOM+17} fill="#6677bb" fontSize={5.5} textAnchor="middle" fontWeight="700">🚪</text>
+      <text x={DELI_ROUTE_X+14} y={BOTTOM+27} fill="#445588" fontSize={4.5} textAnchor="middle">ENTER</text>
     </svg>
   );
 }
