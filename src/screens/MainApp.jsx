@@ -408,33 +408,27 @@ function StoreMap({ currentAisle, remaining, items }) {
   const LABELS={1:"Wine/Beer",2:"Hardware",3:"Cleaning",4:"Health",5:"Baby",6:"Seasonal",7:"Picnic",8:"Desserts",9:"Organic",10:"Pet",11:"Drinks",12:"Soup",13:"Rice",14:"Canned",15:"Cereal",16:"Bread"};
   const PROD_CX=RIGHT-66, PROD_CY=BOTTOM+20;
   const DELI_CX=DELI_X+10, DELI_CY=MID;
-  // Route path — snakes through aisles then extends to PROD/DELI if remaining
-  const pts=[[ax(16)+4, BOTTOM+20]];
-  let up=true;
-  numRoute.forEach(n=>{
+  // Clean orthogonal route — straight up/down aisles, no mid-zigzag
+  const pts=[[ax(16)+4, BOTTOM+20]]; // start at entrance
+  numRoute.forEach((n,idx)=>{
     const x=ax(n);
-    if(up){pts.push([x,BOTTOM]);pts.push([x,MID+GAP]);pts.push([x,MID-GAP]);pts.push([x,TOP]);}
-    else{pts.push([x,TOP]);pts.push([x,MID-GAP]);pts.push([x,MID+GAP]);pts.push([x,BOTTOM]);}
-    up=!up;
+    if(idx%2===0){pts.push([x,BOTTOM]);pts.push([x,TOP]);}  // go up
+    else{pts.push([x,TOP]);pts.push([x,BOTTOM]);}            // go down
   });
+  // Extend to PRODUCE — along front corridor then dip into produce box
   if(remaining.includes("PROD")){
     const p=pts[pts.length-1];
-    if(p[1]!==BOTTOM) pts.push([p[0],BOTTOM]);
+    if(p[1]!==BOTTOM) pts.push([p[0],BOTTOM]); // reach front corridor
     pts.push([PROD_CX,BOTTOM]);
     pts.push([PROD_CX,PROD_CY]);
-    pts.push([PROD_CX,BOTTOM]);
   }
+  // Extend to DELI — front corridor → right wall → up to deli (fully orthogonal)
   if(remaining.includes("DELI")){
     const p=pts[pts.length-1];
-    if(p[1]!==BOTTOM) pts.push([p[0],BOTTOM]);
-    pts.push([RIGHT,BOTTOM]);
-    pts.push([DELI_CX,DELI_CY]);
-    pts.push([RIGHT,DELI_CY]);
+    if(p[1]!==BOTTOM) pts.push([p[0],BOTTOM]); // reach front corridor
+    pts.push([DELI_CX,BOTTOM]);                 // along bottom to right wall
+    pts.push([DELI_CX,DELI_CY]);               // up right wall to deli height
   }
-  const last=pts[pts.length-1];
-  if(last[1]!==TOP) pts.push([last[0],TOP]);
-  pts.push([LEFT,TOP]);
-  pts.push([LEFT-4,BOTTOM+20]);
   const pd=pts.map((p,i)=>`${i===0?"M":"L"}${p[0].toFixed(1)},${p[1].toFixed(1)}`).join(" ");
   const hasRoute=remaining.length>0;
   return (
