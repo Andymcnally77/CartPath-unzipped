@@ -21,7 +21,9 @@ export const STORE_AISLES = {
   "PROD": "Produce",
 };
 
-export const ROUTE_ORDER = ["16","15","14","13","12","11","10","9","8","7","6","5","4","3","2","1","DAIRY","PROD","DELI"];
+// Optimal no-backtrack route: enter near aisle 16/DELI → snake right-to-left →
+// DAIRY visited at back wall right after aisle 16 (already at TOP) → PROD near checkout
+export const ROUTE_ORDER = ["DELI","16","DAIRY","15","14","13","12","11","10","9","8","7","6","5","4","3","2","1","PROD"];
 
 export const AISLE_COLORS = {
   "1":"#c084fc",  "2":"#60a5fa",  "3":"#34d399",  "4":"#f9a8d4",

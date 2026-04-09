@@ -410,65 +410,65 @@ function StoreMap({ currentAisle, allStops, items }) {
   const LABELS={1:"Wine",2:"Hardware",3:"Cleaning",4:"Health",5:"Baby",6:"Seasonal",7:"Picnic",8:"Desserts",9:"Organic",10:"Pet",11:"Drinks",12:"Soup",13:"Rice",14:"Canned",15:"Cereal",16:"Bread"};
   const curIdx=allStops.indexOf(currentAisle);
 
-  // Build full route: entrance → every stop in order → checkout
-  const pts=[[ENTRANCE_X,ENTRANCE_Y]];
-  let cy=ENTRANCE_Y,cx=ENTRANCE_X;
+  // ── Fully orthogonal route builder ──────────────────────────────────────────
+  // Rules: only push horizontal OR vertical segments, never both simultaneously.
+  // Corridors: BOTTOM(166)=front, MID(106)=middle opening, TOP(46)=back, DAIRY_Y(30)=back wall
+  // DELI→aisle transitions use the MID corridor for a direct connection.
+  const pts=[[ENTRANCE_X,ENTRANCE_Y],[ENTRANCE_X,BOTTOM]]; // enter → step up to front corridor
+  let cy=BOTTOM,cx=ENTRANCE_X;
+  const stopEndIdxs=[];   // pts index at the END of each stop's path segment
+
   allStops.forEach(aisle=>{
     if(!isNaN(Number(aisle))){
       const n=Number(aisle),x=ax(n);
-      if(cy>=BOTTOM-2){pts.push([x,BOTTOM]);pts.push([x,TOP]);cy=TOP;cx=x;}
-      else if(cy<=TOP+2){pts.push([x,TOP]);pts.push([x,BOTTOM]);cy=BOTTOM;cx=x;}
-      else{pts.push([cx,BOTTOM]);pts.push([x,BOTTOM]);pts.push([x,TOP]);cy=TOP;cx=x;}
+      // 1. Normalise above-TOP positions (DAIRY_Y) → drop to TOP first
+      if(cy<TOP-2){pts.push([cx,TOP]);cy=TOP;}
+      // 2. Route based on which corridor we're currently on
+      if(cy>=BOTTOM-2){
+        // On BOTTOM corridor → slide to aisle x, go UP to TOP
+        pts.push([x,BOTTOM]);pts.push([x,TOP]);cy=TOP;cx=x;
+      } else if(cy<=TOP+2){
+        // On TOP corridor → slide to aisle x, go DOWN to BOTTOM
+        pts.push([x,TOP]);pts.push([x,BOTTOM]);cy=BOTTOM;cx=x;
+      } else {
+        // On MID corridor (came from DELI) → cross MID to aisle x,
+        // drop to BOTTOM to cover the lower half, then rise to TOP
+        pts.push([x,MID]);pts.push([x,BOTTOM]);pts.push([x,TOP]);cy=TOP;cx=x;
+      }
     } else if(aisle==="DAIRY"){
+      // Get to TOP corridor first (from any starting level)
       if(cy>=BOTTOM-2){pts.push([cx,TOP]);cy=TOP;}
-      pts.push([DAIRY_CX,TOP]);pts.push([DAIRY_CX,DAIRY_Y]);
-      cy=DAIRY_Y;cx=DAIRY_CX;
+      else if(cy>TOP+2&&cy<BOTTOM-2){pts.push([cx,TOP]);cy=TOP;} // from MID
+      // Slide along TOP to DAIRY centre, then step up to the back wall
+      if(cy>DAIRY_Y+2) pts.push([DAIRY_CX,TOP]);
+      pts.push([DAIRY_CX,DAIRY_Y]);cy=DAIRY_Y;cx=DAIRY_CX;
     } else if(aisle==="PROD"){
-      if(cy<BOTTOM-10){pts.push([cx,BOTTOM]);cy=BOTTOM;}
-      pts.push([PROD_CX,BOTTOM]);pts.push([PROD_CX,PROD_CY]);
-      cy=PROD_CY;cx=PROD_CX;
+      // Get to BOTTOM corridor
+      if(cy<TOP-2){pts.push([cx,TOP]);cy=TOP;}           // from DAIRY_Y → TOP
+      if(cy<=TOP+2||(cy>TOP+2&&cy<BOTTOM-2)){pts.push([cx,BOTTOM]);cy=BOTTOM;} // TOP/MID → BOTTOM
+      // Slide to PROD column, drop into produce area
+      pts.push([PROD_CX,BOTTOM]);pts.push([PROD_CX,PROD_CY]);cy=PROD_CY;cx=PROD_CX;
     } else if(aisle==="DELI"){
-      if(cy<BOTTOM-10){pts.push([cx,BOTTOM]);cy=BOTTOM;}
-      pts.push([DELI_CX,BOTTOM]);pts.push([DELI_CX,DELI_CY]);
-      cy=DELI_CY;cx=DELI_CX;
+      // Get to BOTTOM corridor
+      if(cy<TOP-2){pts.push([cx,TOP]);cy=TOP;}
+      if(cy<=TOP+2||(cy>TOP+2&&cy<BOTTOM-2)){pts.push([cx,BOTTOM]);cy=BOTTOM;}
+      // Slide right to DELI column, rise to DELI height (MID)
+      pts.push([DELI_CX,BOTTOM]);pts.push([DELI_CX,DELI_CY]);cy=DELI_CY;cx=DELI_CX;
     }
+    stopEndIdxs.push(pts.length-1);
   });
-  // Connect to checkout
-  if(cy<BOTTOM-10) pts.push([cx,BOTTOM]);
+
+  // Route to checkout — always orthogonal
+  if(cy<TOP-2){pts.push([cx,TOP]);cy=TOP;}
+  if(cy<=TOP+2||(cy>TOP+2&&cy<BOTTOM-2)){pts.push([cx,BOTTOM]);cy=BOTTOM;}
+  if(cy>BOTTOM+2){pts.push([cx,BOTTOM]);} // from PROD/entrance level → rise to front corridor
   pts.push([CHECKOUT_X,BOTTOM]);pts.push([CHECKOUT_X,CHECKOUT_Y]);
 
-  // Split route at current stop for done/upcoming styling
-  // Find the waypoint index where the current stop's first segment starts
-  let splitPtIdx=pts.length; // default: all done
-  if(curIdx>=0){
-    // Walk allStops up to curIdx to find how many waypoints were added
-    const countPts=[[ENTRANCE_X,ENTRANCE_Y]];
-    let cy2=ENTRANCE_Y,cx2=ENTRANCE_X;
-    for(let si=0;si<curIdx;si++){
-      const a=allStops[si];
-      if(!isNaN(Number(a))){
-        const n=Number(a),x=ax(n);
-        if(cy2>=BOTTOM-2){countPts.push([x,BOTTOM]);countPts.push([x,TOP]);cy2=TOP;cx2=x;}
-        else if(cy2<=TOP+2){countPts.push([x,TOP]);countPts.push([x,BOTTOM]);cy2=BOTTOM;cx2=x;}
-        else{countPts.push([cx2,BOTTOM]);countPts.push([x,BOTTOM]);countPts.push([x,TOP]);cy2=TOP;cx2=x;}
-      } else if(a==="DAIRY"){
-        if(cy2>=BOTTOM-2){countPts.push([cx2,TOP]);cy2=TOP;}
-        countPts.push([DAIRY_CX,TOP]);countPts.push([DAIRY_CX,DAIRY_Y]);cy2=DAIRY_Y;cx2=DAIRY_CX;
-      } else if(a==="PROD"){
-        if(cy2<BOTTOM-10){countPts.push([cx2,BOTTOM]);cy2=BOTTOM;}
-        countPts.push([PROD_CX,BOTTOM]);countPts.push([PROD_CX,PROD_CY]);cy2=PROD_CY;cx2=PROD_CX;
-      } else if(a==="DELI"){
-        if(cy2<BOTTOM-10){countPts.push([cx2,BOTTOM]);cy2=BOTTOM;}
-        countPts.push([DELI_CX,BOTTOM]);countPts.push([DELI_CX,DELI_CY]);cy2=DELI_CY;cx2=DELI_CX;
-      }
-    }
-    splitPtIdx=countPts.length-1;
-  }
-  const donePts=pts.slice(0,splitPtIdx+1);
-  const upcomingPts=[pts[splitPtIdx],...pts.slice(splitPtIdx+1)];
+  // Split route at current stop: everything before = dim "done", rest = bright "upcoming"
+  const splitIdx=curIdx>0?stopEndIdxs[curIdx-1]:0;
   const mkPath=arr=>arr.map((p,i)=>`${i===0?"M":"L"}${p[0].toFixed(1)},${p[1].toFixed(1)}`).join(" ");
-  const donePd=donePts.length>1?mkPath(donePts):"";
-  const upcomingPd=upcomingPts.length>1?mkPath(upcomingPts):"";
+  const donePd=splitIdx>0?mkPath(pts.slice(0,splitIdx+1)):"";
+  const upcomingPd=mkPath(pts.slice(splitIdx));
 
   return (
     <svg viewBox="0 0 316 210" width="100%" style={{display:"block"}}>
