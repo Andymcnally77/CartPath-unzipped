@@ -525,7 +525,7 @@ function StoreMap({ currentAisle, allStops, items }) {
         fill="none" strokeLinecap="round" strokeLinejoin="round"
         strokeDasharray="10 6"
         strokeDashoffset="-16"
-        style={{animation:"dash 14s linear infinite"}}/>
+        style={{animation:"dash 4s linear infinite"}}/>
 
       {/* ── Numbered stop badges ON the route line ───────────────────── */}
       {allStops.map((aisle,i)=>{
