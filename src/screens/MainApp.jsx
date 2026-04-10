@@ -524,8 +524,8 @@ function StoreMap({ currentAisle, allStops, items }) {
       <path d={upcomingPd} stroke="#4ade80" strokeWidth={3}
         fill="none" strokeLinecap="round" strokeLinejoin="round"
         strokeDasharray="10 6"
-        strokeDashoffset="-160"
-        style={{animation:"dash 1.8s linear infinite"}}/>
+        strokeDashoffset="-16"
+        style={{animation:"dash 14s linear infinite"}}/>
 
       {/* ── Numbered stop badges ON the route line ───────────────────── */}
       {allStops.map((aisle,i)=>{
